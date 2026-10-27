@@ -1,6 +1,7 @@
 :root {
   --auxo-emerald: #167d55;
   --auxo-emerald-dark: #0f5c3e;
+  --auxo-border: #e0e0e0;
   color-scheme: light;
 }
 
@@ -15,23 +16,198 @@ body {
   color: #1a1a1a;
 }
 
-.shell-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  gap: 0.25rem;
-  text-align: center;
+h1 {
+  color: var(--auxo-emerald);
+  margin: 0;
 }
 
-.shell-placeholder h1 {
-  color: var(--auxo-emerald);
-  font-size: 2rem;
-  margin: 0;
+.tagline {
+  color: var(--auxo-emerald-dark);
+  margin: 0 0 1rem;
+  font-weight: 500;
 }
 
 .muted {
   color: #777;
   font-size: 0.85rem;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+button {
+  background: var(--auxo-emerald);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button:hover:not(:disabled) {
+  background: var(--auxo-emerald-dark);
+}
+
+.link-button {
+  background: none;
+  color: var(--auxo-emerald-dark);
+  text-decoration: underline;
+  padding: 0.25rem;
+}
+
+.link-button:hover {
+  background: none;
+  color: var(--auxo-emerald);
+}
+
+/* --- Login / setup --- */
+
+.centered-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--auxo-border);
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.auth-form h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.auth-form input {
+  padding: 0.5rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.divider {
+  color: #aaa;
+  font-size: 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.backup-panel {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.file-button {
+  display: inline-block;
+  background: white;
+  color: var(--auxo-emerald-dark);
+  border: 1px solid var(--auxo-emerald);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.file-button input {
+  display: none;
+}
+
+/* --- Home / shop shell --- */
+
+.home-screen {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.home-screen header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.home-screen header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.home-screen section {
+  background: white;
+  border: 1px solid var(--auxo-border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.employee-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.add-employee-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 420px;
+}
+
+.add-employee-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.add-employee-form label > input {
+  padding: 0.5rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.add-employee-form fieldset {
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.checkbox-row {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
 }

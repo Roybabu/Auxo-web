@@ -7,6 +7,7 @@ function employee(overrides: Partial<Employee> = {}): Employee {
     ...newEntityBase(),
     name: "Test Employee",
     username: "test",
+    passwordHash: { algorithm: "pbkdf2-sha256", iterations: 1, saltHex: "00", hashHex: "00" },
     role: "employee",
     permissions: [],
     active: true,
