@@ -6,4 +6,6 @@ export * from "./product.js";
 export * from "./customer.js";
 export * from "./permissions.js";
 export * from "./invoice.js";
+export * from "./repository.js";
+export * from "./backup.js";
 export * from "./ports.js";

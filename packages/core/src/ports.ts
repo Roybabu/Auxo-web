@@ -6,23 +6,17 @@
  * Core logic never imports from "browser-land" directly.
  */
 
+import type { AuxoBackupFile } from "./backup.js";
+
 export interface KeyValueStore {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
   delete(key: string): Promise<void>;
 }
 
-export interface BackupFile {
-  /** Format version of the neutral JSON export, for forward compatibility. */
-  formatVersion: number;
-  createdAt: string;
-  deviceId: string;
-  data: unknown;
-}
-
 export interface BackupPort {
-  export(): Promise<BackupFile>;
-  import(backup: BackupFile): Promise<void>;
+  export(): Promise<AuxoBackupFile>;
+  import(backup: AuxoBackupFile): Promise<void>;
 }
 
 export interface PrintJob {
