@@ -10,6 +10,7 @@ import { getRepositories } from "../db/repositories.js";
 import { setSession } from "../appState.js";
 import BackupPanel from "./BackupPanel.js";
 import InventoryScreen from "./InventoryScreen.js";
+import BillingScreen from "./BillingScreen.js";
 
 interface HomeScreenProps {
   business: { name: string };
@@ -18,12 +19,14 @@ interface HomeScreenProps {
   onRestored: () => void | Promise<void>;
 }
 
-type Tab = "overview" | "inventory";
+type Tab = "overview" | "inventory" | "billing";
 
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
   const [tab, setTab] = useState<Tab>("overview");
   const canViewInventory = hasPermission(currentEmployee, "inventory.view");
   const canEditInventory = hasPermission(currentEmployee, "inventory.edit");
+  const canBill = hasPermission(currentEmployee, "billing.create");
+  const canVoidBill = hasPermission(currentEmployee, "billing.void");
 
   async function signOut() {
     await setSession(null);
@@ -52,6 +55,15 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         >
           Overview
         </button>
+        {canBill && (
+          <button
+            type="button"
+            className={tab === "billing" ? "tab active" : "tab"}
+            onClick={() => setTab("billing")}
+          >
+            Billing
+          </button>
+        )}
         {canViewInventory && (
           <button
             type="button"
@@ -65,6 +77,9 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
 
       {tab === "overview" && (
         <OverviewTab currentEmployee={currentEmployee} onRestored={onRestored} />
+      )}
+      {tab === "billing" && canBill && (
+        <BillingScreen currentEmployee={currentEmployee} canVoid={canVoidBill} />
       )}
       {tab === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
     </main>

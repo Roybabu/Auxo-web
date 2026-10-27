@@ -330,3 +330,137 @@ button:hover:not(:disabled) {
   border: 1px solid var(--auxo-border);
   border-radius: 6px;
 }
+
+/* --- Billing --- */
+
+.billing-screen {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.billing-picker,
+.billing-cart {
+  background: white;
+  border: 1px solid var(--auxo-border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.billing-picker input[type="text"],
+.billing-picker > input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.picker-list,
+.held-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.picker-list button {
+  width: 100%;
+  text-align: left;
+  background: #f3f3f3;
+  color: #222;
+}
+
+.picker-list button:hover {
+  background: #e6f4ee;
+}
+
+.held-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.held-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.held-actions button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.cart-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cart-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.cart-label {
+  flex: 1;
+}
+
+.cart-row input {
+  width: 64px;
+  padding: 0.3rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.cart-line-total {
+  width: 70px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.billing-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.billing-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.billing-form input,
+.billing-form select {
+  padding: 0.4rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.billing-totals {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.billing-actions {
+  display: flex;
+  gap: 0.5rem;
+}
