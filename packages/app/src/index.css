@@ -1,0 +1,37 @@
+:root {
+  --auxo-emerald: #167d55;
+  --auxo-emerald-dark: #0f5c3e;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #fafafa;
+  color: #1a1a1a;
+}
+
+.shell-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.shell-placeholder h1 {
+  color: var(--auxo-emerald);
+  font-size: 2rem;
+  margin: 0;
+}
+
+.muted {
+  color: #777;
+  font-size: 0.85rem;
+}

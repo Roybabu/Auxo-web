@@ -1,0 +1,19 @@
+{
+  "name": "auxo-web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Offline-first browser/PWA version of the Auxo retail POS.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@auxo/app",
+    "build": "npm run build --workspace=@auxo/core && npm run build --workspace=@auxo/app",
+    "test": "npm run test --workspace=@auxo/core",
+    "lint": "npm run lint --workspace=@auxo/core && npm run lint --workspace=@auxo/app",
+    "typecheck": "npm run typecheck --workspace=@auxo/core && npm run typecheck --workspace=@auxo/app"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
