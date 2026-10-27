@@ -51,13 +51,13 @@ without redesigning the data model when that day comes.
 ## Build order
 
 1. Repo skeleton, core package, data model *(done)*
-2. Local database plus backup/restore
-3. Shop setup and login with owner and employee roles
-4. Products, variants, stock
-5. Billing screen (discounts, tax, payments)
-6. Customers, invoice history, printable invoices
-7. Reports
-8. PWA install and offline checks, then hosting
+2. Local database plus backup/restore *(done)*
+3. Shop setup and login with owner and employee roles *(done)*
+4. Products, variants, stock *(done)*
+5. Billing screen (discounts, tax, payments) *(done)*
+6. Customers, invoice history, printable invoices *(done)*
+7. Reports *(done)*
+8. PWA install and offline checks, then hosting *(done)*
 
 ## Development
 
@@ -67,3 +67,34 @@ npm run test        # core package unit tests
 npm run dev          # app dev server
 npm run build        # core, then app
 ```
+
+## PWA / offline
+
+The built app is a standard installable PWA:
+
+- `packages/app/vite.config.ts` configures `vite-plugin-pwa` with a full
+  manifest (name, icons at 192/512, a maskable 512 icon, theme color) and
+  precaches every built asset — JS, CSS, HTML, and the SQLite WASM binary
+  — so the app keeps working with no network at all once it's been opened
+  once.
+- Icons live as SVG sources in `packages/app/icon-source/` and are
+  rasterized to `packages/app/public/icons/`; regenerate them with
+  `sharp` if the source SVGs change (see git history for the one-off
+  script used to generate them).
+- There is no backend and no outbound network call anywhere in the app —
+  data lives entirely in the browser's IndexedDB, so "offline" isn't a
+  degraded mode, it's the normal mode.
+- Verified end to end: after a first (online) load, the app was taken
+  fully offline and reloaded — it booted, and normal operations (adding
+  inventory, etc.) worked identically.
+
+## Hosting
+
+The app is a static site (no server component), so any static host works.
+`.github/workflows/deploy.yml` builds `@auxo/core` then `@auxo/app` and
+deploys `packages/app/dist` to GitHub Pages automatically on every push to
+`main` (or manually via the Actions tab's "Run workflow" button). To use a
+different static host (Netlify, Vercel, S3, a shop's own web server, etc.)
+instead, just upload the contents of `packages/app/dist` after running
+`npm run build` — the app's `base: "./"` setting means it works from any
+subpath, not just a domain root.

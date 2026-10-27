@@ -35,8 +35,7 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: "autoUpdate",
-      // Full manifest, icons, and offline precaching are filled in during
-      // the PWA/offline step — this just reserves the plugin's place now.
+      includeAssets: ["favicon.png"],
       manifest: {
         name: "Auxo",
         short_name: "Auxo",
@@ -44,7 +43,17 @@ export default defineConfig({
         theme_color: "#167D55",
         background_color: "#FFFFFF",
         display: "standalone",
-        icons: [],
+        start_url: ".",
+        icons: [
+          { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "icons/icon-maskable-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest,wasm}"],

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#167D55"/>
+  <!-- Simple original "growth arrow / A" monogram -->
+  <path d="M256 120 L372 392 L324 392 L296 324 L216 324 L188 392 L140 392 Z"
+        fill="#FFFFFF"/>
+  <rect x="226" y="274" width="60" height="26" fill="#167D55"/>
+  <path d="M256 150 L256 210" stroke="#FFFFFF" stroke-width="0" />
+  <!-- small upward sprout accent -->
+  <path d="M256 96 C 246 76, 266 76, 256 56" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" fill="none"/>
+</svg>
