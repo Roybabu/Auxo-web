@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ALL_PERMISSIONS,
+  hasPermission,
   newEmployee,
   type Employee,
   type Permission,
@@ -8,6 +9,7 @@ import {
 import { getRepositories } from "../db/repositories.js";
 import { setSession } from "../appState.js";
 import BackupPanel from "./BackupPanel.js";
+import InventoryScreen from "./InventoryScreen.js";
 
 interface HomeScreenProps {
   business: { name: string };
@@ -16,16 +18,12 @@ interface HomeScreenProps {
   onRestored: () => void | Promise<void>;
 }
 
+type Tab = "overview" | "inventory";
+
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-
-  async function refreshEmployees() {
-    setEmployees(await getRepositories().employees.list());
-  }
-
-  useEffect(() => {
-    if (currentEmployee.role === "super_admin") void refreshEmployees();
-  }, [currentEmployee.role]);
+  const [tab, setTab] = useState<Tab>("overview");
+  const canViewInventory = hasPermission(currentEmployee, "inventory.view");
+  const canEditInventory = hasPermission(currentEmployee, "inventory.edit");
 
   async function signOut() {
     await setSession(null);
@@ -46,9 +44,55 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         </div>
       </header>
 
+      <nav className="tab-bar">
+        <button
+          type="button"
+          className={tab === "overview" ? "tab active" : "tab"}
+          onClick={() => setTab("overview")}
+        >
+          Overview
+        </button>
+        {canViewInventory && (
+          <button
+            type="button"
+            className={tab === "inventory" ? "tab active" : "tab"}
+            onClick={() => setTab("inventory")}
+          >
+            Inventory
+          </button>
+        )}
+      </nav>
+
+      {tab === "overview" && (
+        <OverviewTab currentEmployee={currentEmployee} onRestored={onRestored} />
+      )}
+      {tab === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
+    </main>
+  );
+}
+
+function OverviewTab({
+  currentEmployee,
+  onRestored,
+}: {
+  currentEmployee: Employee;
+  onRestored: () => void | Promise<void>;
+}) {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  async function refreshEmployees() {
+    setEmployees(await getRepositories().employees.list());
+  }
+
+  useEffect(() => {
+    if (currentEmployee.role === "super_admin") void refreshEmployees();
+  }, [currentEmployee.role]);
+
+  return (
+    <>
       <p className="muted">
-        Products, billing, customers, and reports are built in the next steps — this is just the
-        signed-in home base for now.
+        Billing, customers, and reports are built in the next steps — this is just the signed-in
+        home base for now.
       </p>
 
       {currentEmployee.role === "super_admin" && (
@@ -70,7 +114,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         <h2>Backup</h2>
         <BackupPanel onRestored={onRestored} />
       </section>
-    </main>
+    </>
   );
 }
 

@@ -1,5 +1,7 @@
-import type { Entity } from "./entity.js";
+import { newEntityBase, type Entity } from "./entity.js";
 import type { UUID } from "./ids.js";
+
+export class StockError extends Error {}
 
 /**
  * Stock is derived from an append-only ledger of movements, never from
@@ -34,6 +36,31 @@ export function currentStock(movements: readonly StockMovement[]): number {
   return movements
     .filter((m) => m.deletedAt === null)
     .reduce((total, m) => total + m.quantityDelta, 0);
+}
+
+export interface NewStockMovementInput {
+  productVariantId: UUID;
+  quantityDelta: number;
+  reason: StockMovementReason;
+  referenceId?: UUID | null;
+  note?: string | null;
+}
+
+export function newStockMovement(input: NewStockMovementInput): StockMovement {
+  if (input.quantityDelta === 0) {
+    throw new StockError("A stock movement must change the quantity by a non-zero amount.");
+  }
+  if (!Number.isFinite(input.quantityDelta)) {
+    throw new StockError("Stock quantity must be a finite number.");
+  }
+  return {
+    ...newEntityBase(),
+    productVariantId: input.productVariantId,
+    quantityDelta: input.quantityDelta,
+    reason: input.reason,
+    referenceId: input.referenceId ?? null,
+    note: input.note ?? null,
+  };
 }
 
 /** Convenience: current stock per variant from a mixed list of movements. */

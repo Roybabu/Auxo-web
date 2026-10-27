@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { newEntityBase } from "./entity.js";
-import { currentStock, stockByVariant, type StockMovement } from "./stock.js";
+import { currentStock, newStockMovement, StockError, stockByVariant, type StockMovement } from "./stock.js";
 
 function movement(
   productVariantId: string,
@@ -35,5 +35,26 @@ describe("stock", () => {
     const totals = stockByVariant(movements);
     expect(totals.get("v1")).toBe(8);
     expect(totals.get("v2")).toBe(4);
+  });
+});
+
+describe("newStockMovement", () => {
+  it("rejects a zero quantity delta", () => {
+    expect(() => newStockMovement({ productVariantId: "v1", quantityDelta: 0, reason: "manual_adjustment" })).toThrow(
+      StockError
+    );
+  });
+
+  it("defaults referenceId and note to null when omitted", () => {
+    const m = newStockMovement({ productVariantId: "v1", quantityDelta: 5, reason: "purchase" });
+    expect(m.referenceId).toBeNull();
+    expect(m.note).toBeNull();
+  });
+
+  it("creates a movement carrying the given reason and quantity", () => {
+    const m = newStockMovement({ productVariantId: "v1", quantityDelta: -2, reason: "sale", referenceId: "inv1" });
+    expect(m.reason).toBe("sale");
+    expect(m.quantityDelta).toBe(-2);
+    expect(m.referenceId).toBe("inv1");
   });
 });
