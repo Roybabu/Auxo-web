@@ -13,4 +13,5 @@ export * from "./addEmployee.js";
 export * from "./invoice.js";
 export * from "./repository.js";
 export * from "./backup.js";
+export * from "./reports.js";
 export * from "./ports.js";

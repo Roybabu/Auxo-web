@@ -552,3 +552,56 @@ button:hover:not(:disabled) {
   background: #fbeaea;
   color: #b3261e;
 }
+
+/* --- Reports --- */
+
+.reports-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.range-picker {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--auxo-border);
+  padding-bottom: 0.5rem;
+}
+
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.report-card {
+  background: white;
+  border: 1px solid var(--auxo-border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.report-card strong {
+  font-size: 1.3rem;
+  color: var(--auxo-emerald-dark);
+}
+
+.rank-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.rank-list li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.3rem;
+}

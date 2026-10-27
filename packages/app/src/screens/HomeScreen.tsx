@@ -14,6 +14,7 @@ import InventoryScreen from "./InventoryScreen.js";
 import BillingScreen from "./BillingScreen.js";
 import CustomersScreen from "./CustomersScreen.js";
 import InvoiceHistoryScreen from "./InvoiceHistoryScreen.js";
+import ReportsScreen from "./ReportsScreen.js";
 
 interface HomeScreenProps {
   business: Business;
@@ -22,7 +23,7 @@ interface HomeScreenProps {
   onRestored: () => void | Promise<void>;
 }
 
-type Tab = "overview" | "inventory" | "billing" | "customers" | "history";
+type Tab = "overview" | "inventory" | "billing" | "customers" | "history" | "reports";
 
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -33,6 +34,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
   const canViewCustomers = hasPermission(currentEmployee, "customers.view");
   const canEditCustomers = hasPermission(currentEmployee, "customers.edit");
   const canViewHistory = canBill || hasPermission(currentEmployee, "reports.view");
+  const canViewReports = hasPermission(currentEmployee, "reports.view");
 
   async function signOut() {
     await setSession(null);
@@ -97,6 +99,15 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
             History
           </button>
         )}
+        {canViewReports && (
+          <button
+            type="button"
+            className={tab === "reports" ? "tab active" : "tab"}
+            onClick={() => setTab("reports")}
+          >
+            Reports
+          </button>
+        )}
       </nav>
 
       {tab === "overview" && (
@@ -108,6 +119,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       {tab === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
       {tab === "customers" && canViewCustomers && <CustomersScreen canEdit={canEditCustomers} />}
       {tab === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
+      {tab === "reports" && canViewReports && <ReportsScreen />}
     </main>
   );
 }
@@ -131,7 +143,6 @@ function OverviewTab({
 
   return (
     <>
-      <p className="muted">Reports are built in the next step.</p>
 
       {currentEmployee.role === "super_admin" && (
         <section>
