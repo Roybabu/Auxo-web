@@ -464,3 +464,91 @@ button:hover:not(:disabled) {
   display: flex;
   gap: 0.5rem;
 }
+
+/* --- Customers --- */
+
+.customer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.add-customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 360px;
+}
+
+.add-customer-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.add-customer-form input {
+  padding: 0.5rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+/* --- Invoice history --- */
+
+.invoice-history-screen {
+  background: white;
+  border: 1px solid var(--auxo-border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.invoice-search {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.5rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.invoice-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.invoice-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 1fr 90px 100px 70px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invoice-number {
+  font-weight: 600;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #eef7f1;
+  color: var(--auxo-emerald-dark);
+  text-align: center;
+}
+
+.status-voided {
+  background: #fbeaea;
+  color: #b3261e;
+}

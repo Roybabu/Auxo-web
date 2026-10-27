@@ -1,10 +1,37 @@
-import type { Entity } from "./entity.js";
+import { newEntityBase, type Entity } from "./entity.js";
+
+export class CustomerError extends Error {}
 
 export interface Customer extends Entity {
   name: string;
   phone: string | null;
   /** Running credit balance: positive = customer owes the shop. */
   creditLimit: number | null;
+}
+
+export interface NewCustomerInput {
+  name: string;
+  phone?: string | null;
+  creditLimit?: number | null;
+}
+
+export function validateCustomerInput(input: NewCustomerInput): void {
+  if (input.name.trim().length === 0) {
+    throw new CustomerError("Customer name is required.");
+  }
+  if (input.creditLimit != null && input.creditLimit < 0) {
+    throw new CustomerError("Credit limit cannot be negative.");
+  }
+}
+
+export function newCustomer(input: NewCustomerInput): Customer {
+  validateCustomerInput(input);
+  return {
+    ...newEntityBase(),
+    name: input.name.trim(),
+    phone: input.phone?.trim() || null,
+    creditLimit: input.creditLimit ?? null,
+  };
 }
 
 /**

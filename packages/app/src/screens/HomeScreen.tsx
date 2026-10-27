@@ -3,6 +3,7 @@ import {
   ALL_PERMISSIONS,
   hasPermission,
   newEmployee,
+  type Business,
   type Employee,
   type Permission,
 } from "@auxo/core";
@@ -11,15 +12,17 @@ import { setSession } from "../appState.js";
 import BackupPanel from "./BackupPanel.js";
 import InventoryScreen from "./InventoryScreen.js";
 import BillingScreen from "./BillingScreen.js";
+import CustomersScreen from "./CustomersScreen.js";
+import InvoiceHistoryScreen from "./InvoiceHistoryScreen.js";
 
 interface HomeScreenProps {
-  business: { name: string };
+  business: Business;
   currentEmployee: Employee;
   onSignedOut: () => void;
   onRestored: () => void | Promise<void>;
 }
 
-type Tab = "overview" | "inventory" | "billing";
+type Tab = "overview" | "inventory" | "billing" | "customers" | "history";
 
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -27,6 +30,9 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
   const canEditInventory = hasPermission(currentEmployee, "inventory.edit");
   const canBill = hasPermission(currentEmployee, "billing.create");
   const canVoidBill = hasPermission(currentEmployee, "billing.void");
+  const canViewCustomers = hasPermission(currentEmployee, "customers.view");
+  const canEditCustomers = hasPermission(currentEmployee, "customers.edit");
+  const canViewHistory = canBill || hasPermission(currentEmployee, "reports.view");
 
   async function signOut() {
     await setSession(null);
@@ -73,6 +79,24 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
             Inventory
           </button>
         )}
+        {canViewCustomers && (
+          <button
+            type="button"
+            className={tab === "customers" ? "tab active" : "tab"}
+            onClick={() => setTab("customers")}
+          >
+            Customers
+          </button>
+        )}
+        {canViewHistory && (
+          <button
+            type="button"
+            className={tab === "history" ? "tab active" : "tab"}
+            onClick={() => setTab("history")}
+          >
+            History
+          </button>
+        )}
       </nav>
 
       {tab === "overview" && (
@@ -82,6 +106,8 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         <BillingScreen currentEmployee={currentEmployee} canVoid={canVoidBill} />
       )}
       {tab === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
+      {tab === "customers" && canViewCustomers && <CustomersScreen canEdit={canEditCustomers} />}
+      {tab === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
     </main>
   );
 }
@@ -105,10 +131,7 @@ function OverviewTab({
 
   return (
     <>
-      <p className="muted">
-        Billing, customers, and reports are built in the next steps — this is just the signed-in
-        home base for now.
-      </p>
+      <p className="muted">Reports are built in the next step.</p>
 
       {currentEmployee.role === "super_admin" && (
         <section>
