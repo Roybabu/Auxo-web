@@ -8,6 +8,7 @@ import type {
   Invoice,
   Supplier,
   Purchase,
+  Return,
 } from "@auxo/core";
 import { SqliteRepository } from "./sqliteRepository.js";
 import { SqliteKeyValueStore } from "./sqliteKv.js";
@@ -27,6 +28,7 @@ export interface Repositories {
   invoices: SqliteRepository<Invoice>;
   suppliers: SqliteRepository<Supplier>;
   purchases: SqliteRepository<Purchase>;
+  returns: SqliteRepository<Return>;
   settings: SqliteKeyValueStore;
 }
 
@@ -43,6 +45,7 @@ export function getRepositories(): Repositories {
     invoices: new SqliteRepository<Invoice>("invoice"),
     suppliers: new SqliteRepository<Supplier>("supplier"),
     purchases: new SqliteRepository<Purchase>("purchase"),
+    returns: new SqliteRepository<Return>("return"),
     settings: new SqliteKeyValueStore(),
   };
   return repositories;

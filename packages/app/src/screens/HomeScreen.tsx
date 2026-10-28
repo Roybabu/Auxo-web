@@ -10,6 +10,7 @@ import CustomersScreen from "./CustomersScreen.js";
 import InvoiceHistoryScreen from "./InvoiceHistoryScreen.js";
 import SuppliersScreen from "./SuppliersScreen.js";
 import PurchasesScreen from "./PurchasesScreen.js";
+import ReturnsScreen from "./ReturnsScreen.js";
 import ReportsScreen from "./ReportsScreen.js";
 import EmployeesScreen from "./EmployeesScreen.js";
 import SettingsScreen from "./SettingsScreen.js";
@@ -28,6 +29,7 @@ type Section =
   | "inventory"
   | "customers"
   | "history"
+  | "returns"
   | "suppliers"
   | "purchases"
   | "reports"
@@ -56,6 +58,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
     { key: "inventory", label: "Inventory", show: canViewInventory },
     { key: "customers", label: "Customers", show: canViewCustomers },
     { key: "history", label: "Invoice history", show: canViewHistory },
+    { key: "returns", label: "Returns", show: canViewHistory },
     { key: "suppliers", label: "Suppliers", show: canViewPurchases },
     { key: "purchases", label: "Purchases", show: canViewPurchases },
     { key: "reports", label: "Reports", show: canViewReports },
@@ -87,6 +90,9 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         <CustomersScreen canEdit={canEditCustomers} business={business} />
       )}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
+      {section === "returns" && canViewHistory && (
+        <ReturnsScreen canEdit={canVoidBill} currentEmployee={currentEmployee} />
+      )}
       {section === "suppliers" && canViewPurchases && <SuppliersScreen canEdit={canEditPurchases} />}
       {section === "purchases" && canViewPurchases && (
         <PurchasesScreen canEdit={canEditPurchases} currentEmployee={currentEmployee} />

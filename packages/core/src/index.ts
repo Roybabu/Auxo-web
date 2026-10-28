@@ -17,3 +17,4 @@ export * from "./reports.js";
 export * from "./ports.js";
 export * from "./supplier.js";
 export * from "./purchase.js";
+export * from "./return.js";

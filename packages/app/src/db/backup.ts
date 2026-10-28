@@ -32,6 +32,7 @@ export class SqliteBackup implements BackupPort {
       invoices,
       suppliers,
       purchases,
+      returns,
     ] = await Promise.all([
       repos.categories.listAll(),
       repos.products.listAll(),
@@ -42,6 +43,7 @@ export class SqliteBackup implements BackupPort {
       repos.invoices.listAll(),
       repos.suppliers.listAll(),
       repos.purchases.listAll(),
+      repos.returns.listAll(),
     ]);
 
     return {
@@ -58,6 +60,7 @@ export class SqliteBackup implements BackupPort {
         invoices,
         suppliers,
         purchases,
+        returns,
         settings,
       },
     };
@@ -89,6 +92,7 @@ export class SqliteBackup implements BackupPort {
       ...data.invoices.map((r) => repos.invoices.save(r)),
       ...(data.suppliers ?? []).map((r) => repos.suppliers.save(r)),
       ...(data.purchases ?? []).map((r) => repos.purchases.save(r)),
+      ...(data.returns ?? []).map((r) => repos.returns.save(r)),
       ...Object.entries(data.settings)
         .filter(([key]) => !DEVICE_LOCAL_KEYS.has(key))
         .map(([key, value]) => repos.settings.set(key, value)),

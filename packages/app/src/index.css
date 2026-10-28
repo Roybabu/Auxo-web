@@ -331,7 +331,8 @@ button:active:not(:disabled) {
 .dashboard-screen,
 .customers-screen,
 .suppliers-screen,
-.purchases-screen {
+.purchases-screen,
+.returns-screen {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -893,6 +894,11 @@ button:active:not(:disabled) {
 .status-voided {
   background: #fbeaea;
   color: #b3261e;
+}
+
+.status-credit {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .back-link {
