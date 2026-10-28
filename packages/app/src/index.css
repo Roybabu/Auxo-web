@@ -605,3 +605,29 @@ button:hover:not(:disabled) {
   border-bottom: 1px solid #f0f0f0;
   padding-bottom: 0.3rem;
 }
+
+/* --- Android import --- */
+
+.android-import-panel .inline-form {
+  flex-wrap: wrap;
+}
+
+.android-import-panel input[type="password"] {
+  padding: 0.4rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.import-summary {
+  margin-top: 0.75rem;
+  background: #f3faf6;
+  border: 1px solid var(--auxo-emerald);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.import-summary ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}

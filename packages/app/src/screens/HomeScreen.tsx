@@ -10,6 +10,7 @@ import {
 import { getRepositories } from "../db/repositories.js";
 import { setSession } from "../appState.js";
 import BackupPanel from "./BackupPanel.js";
+import AndroidImportPanel from "./AndroidImportPanel.js";
 import InventoryScreen from "./InventoryScreen.js";
 import BillingScreen from "./BillingScreen.js";
 import CustomersScreen from "./CustomersScreen.js";
@@ -163,6 +164,13 @@ function OverviewTab({
         <h2>Backup</h2>
         <BackupPanel onRestored={onRestored} />
       </section>
+
+      {currentEmployee.role === "super_admin" && (
+        <section>
+          <h2>Import from Android app</h2>
+          <AndroidImportPanel />
+        </section>
+      )}
     </>
   );
 }

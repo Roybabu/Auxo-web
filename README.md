@@ -98,3 +98,39 @@ different static host (Netlify, Vercel, S3, a shop's own web server, etc.)
 instead, just upload the contents of `packages/app/dist` after running
 `npm run build` — the app's `base: "./"` setting means it works from any
 subpath, not just a domain root.
+
+## Importing from the Android app
+
+Beyond the 8-step build order, `packages/app/src/androidImport/` adds a
+one-way importer (Home → Overview → "Import from Android app", owner only)
+that reads a backup exported by the Android `Auxo` app and adds its
+products, variants, stock history, customers, and invoices into the
+current web shop. Employee logins are never part of this — the Android app
+deliberately excludes accounts from its own backups, so this only adds
+shop data, never touches who can sign in.
+
+The Android backup is a layered format: an optional passphrase-derived
+AES-256-GCM "streaming" envelope (Google Tink's wire format, reimplemented
+here from scratch against the spec with the standard Web Crypto API, since
+no Tink library exists for the browser) around a zip, inside which the
+database itself is SQLCipher-encrypted. Reading it needs a SQLCipher-
+compatible SQLite engine (`@evolu/sqlite-wasm`, a WASM build of the
+MIT-licensed "SQLite3 Multiple Ciphers" project with explicit legacy-
+SQLCipher support), used only by this importer — the app's own database
+(`packages/app/src/db/`) stays on sql.js as before.
+
+Both crypto layers are tested against independent implementations, not
+just self-consistency: the Tink envelope round-trips against a from-spec
+encryptor with its own boundary-condition tests (segment-size edge cases,
+empty plaintext, wrong-passphrase rejection), and the SQLCipher layer is
+tested by actually reading a database file written by a real, separate
+SQLCipher implementation (Python's `sqlcipher3`, matching the Android
+app's major SQLCipher version) rather than one this project produced
+itself. The full pipeline was also exercised end to end through the real
+browser UI against a realistic fixture backup (matching the Android app's
+actual table schema) with both an unencrypted and a passphrase-encrypted
+wrapper, confirming correct stock, pricing, and invoice totals land in the
+web app's inventory, customers, and invoice history.
+
+Return/credit-note invoices are skipped (not yet modeled on the web side)
+and counted in the import summary rather than silently dropped.
