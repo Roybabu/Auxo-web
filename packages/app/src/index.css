@@ -908,6 +908,23 @@ button:active:not(:disabled) {
   background: transparent;
 }
 
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.row-actions button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.invoice-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
 /* --- Reports --- */
 
 .reports-screen {
