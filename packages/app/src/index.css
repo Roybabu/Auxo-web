@@ -936,8 +936,15 @@ button:active:not(:disabled) {
 .range-picker {
   display: flex;
   gap: 0.5rem;
+}
+
+.reports-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid var(--auxo-border);
   padding-bottom: 0.5rem;
+  gap: 1rem;
 }
 
 .report-cards {
