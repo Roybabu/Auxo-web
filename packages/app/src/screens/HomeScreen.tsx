@@ -4,6 +4,7 @@ import { setSession } from "../appState.js";
 import AppShell, { type NavItem } from "../components/AppShell.js";
 import DashboardScreen from "./DashboardScreen.js";
 import BillingScreen from "./BillingScreen.js";
+import ProductsScreen from "./ProductsScreen.js";
 import InventoryScreen from "./InventoryScreen.js";
 import CustomersScreen from "./CustomersScreen.js";
 import InvoiceHistoryScreen from "./InvoiceHistoryScreen.js";
@@ -18,7 +19,16 @@ interface HomeScreenProps {
   onRestored: () => void | Promise<void>;
 }
 
-type Section = "dashboard" | "pos" | "inventory" | "customers" | "history" | "reports" | "employees" | "settings";
+type Section =
+  | "dashboard"
+  | "pos"
+  | "products"
+  | "inventory"
+  | "customers"
+  | "history"
+  | "reports"
+  | "employees"
+  | "settings";
 
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
   const [section, setSection] = useState<Section>("dashboard");
@@ -36,6 +46,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
   const navItems: NavItem[] = [
     { key: "dashboard", label: "Dashboard", show: true },
     { key: "pos", label: "POS", show: canBill },
+    { key: "products", label: "Products", show: canViewInventory },
     { key: "inventory", label: "Inventory", show: canViewInventory },
     { key: "customers", label: "Customers", show: canViewCustomers },
     { key: "history", label: "Invoice history", show: canViewHistory },
@@ -62,6 +73,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       {section === "pos" && canBill && (
         <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
       )}
+      {section === "products" && canViewInventory && <ProductsScreen canEdit={canEditInventory} />}
       {section === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
       {section === "customers" && canViewCustomers && <CustomersScreen canEdit={canEditCustomers} />}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
