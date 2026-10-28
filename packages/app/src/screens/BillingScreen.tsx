@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   computePaymentStatus,
   invoiceBalanceDue,
@@ -8,16 +8,21 @@ import {
   newInvoice,
   newInvoiceLine,
   newStockMovement,
+  stockByVariant,
+  type Business,
+  type Category,
   type Customer,
   type Employee,
   type Invoice,
   type InvoiceLine,
   type Product,
   type ProductVariant,
+  type StockMovement,
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
+import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
 
 interface CartLine {
   productVariantId: string;
@@ -29,42 +34,65 @@ interface CartLine {
 }
 
 interface BillingScreenProps {
+  business: Business;
   currentEmployee: Employee;
   canVoid: boolean;
 }
 
-export default function BillingScreen({ currentEmployee, canVoid }: BillingScreenProps) {
+export default function BillingScreen({ business, currentEmployee, canVoid }: BillingScreenProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [heldInvoices, setHeldInvoices] = useState<Invoice[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerId, setCustomerId] = useState<string>("");
   const [tableNumber, setTableNumber] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [resumingInvoice, setResumingInvoice] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [completed, setCompleted] = useState<Invoice | null>(null);
+
+  const searchRef = useRef<HTMLInputElement>(null);
 
   async function refreshAll() {
     const repos = getRepositories();
-    const [prods, vars, custs, invoices] = await Promise.all([
+    const [prods, vars, cats, custs, invoices, moves] = await Promise.all([
       repos.products.list(),
       repos.productVariants.list(),
+      repos.categories.list(),
       repos.customers.list(),
       repos.invoices.list(),
+      repos.stockMovements.list(),
     ]);
     setProducts(prods);
     setVariants(vars);
+    setCategories(cats);
     setCustomers(custs);
     setHeldInvoices(invoices.filter((i) => i.status === "held"));
+    setMovements(moves);
   }
 
   useEffect(() => {
     void refreshAll();
   }, []);
+
+  useEffect(() => {
+    // Keep focus in the search box so a USB barcode scanner's keystrokes
+    // (which arrive as fast keyboard input ending in Enter) always land here.
+    searchRef.current?.focus();
+  }, [completed]);
+
+  const stock = useMemo(() => stockByVariant(movements), [movements]);
+
+  function productOf(variant: ProductVariant): Product | undefined {
+    return products.find((p) => p.id === variant.productId);
+  }
 
   function productName(productId: string): string {
     return products.find((p) => p.id === productId)?.name ?? "Unknown product";
@@ -76,9 +104,20 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
 
   const filteredVariants = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return variants.slice(0, 20);
-    return variants.filter((v) => variantLabel(v).toLowerCase().includes(term)).slice(0, 20);
-  }, [search, variants, products]);
+    let pool = variants;
+    if (categoryFilter) {
+      pool = pool.filter((v) => productOf(v)?.categoryId === categoryFilter);
+    }
+    if (!term) return pool.slice(0, 24);
+    return pool
+      .filter((v) => {
+        const label = variantLabel(v).toLowerCase();
+        const barcode = (v.barcode ?? "").toLowerCase();
+        const sku = (v.sku ?? "").toLowerCase();
+        return label.includes(term) || barcode === term || sku === term;
+      })
+      .slice(0, 24);
+  }, [search, categoryFilter, variants, products]);
 
   function addToCart(variant: ProductVariant) {
     setCart((prev) => {
@@ -88,7 +127,7 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
           l.productVariantId === variant.id ? { ...l, quantity: l.quantity + 1 } : l
         );
       }
-      const product = products.find((p) => p.id === variant.productId);
+      const product = productOf(variant);
       return [
         ...prev,
         {
@@ -101,6 +140,18 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
         },
       ];
     });
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    // A barcode scanner "types" the code then Enter. If the search narrows
+    // to exactly one item (by name, SKU, or barcode), add it straight away
+    // instead of making the cashier click it.
+    if (filteredVariants.length === 1) {
+      addToCart(filteredVariants[0]!);
+      setSearch("");
+    }
   }
 
   function updateLine(index: number, patch: Partial<CartLine>) {
@@ -118,6 +169,7 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
     setAmountPaid("");
     setResumingInvoice(null);
     setError(null);
+    setCompleted(null);
   }
 
   const total = invoiceTotal({ lines: cart });
@@ -178,6 +230,7 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
 
   async function completeSale() {
     setError(null);
+    if (submitting) return; // guards against a double-click submitting the same sale twice
     if (cart.length === 0) {
       setError("Add at least one item before completing the sale.");
       return;
@@ -227,7 +280,8 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
         await repos.stockMovements.save(movement);
       }
 
-      resetCart();
+      setCompleted(invoice);
+      setCart([]);
       await refreshAll();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -264,25 +318,95 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
     await refreshAll();
   }
 
+  function printCompleted() {
+    if (!completed) return;
+    const customer = completed.customerId ? customers.find((c) => c.id === completed.customerId) ?? null : null;
+    const html = buildInvoiceHtmlDocument({ invoice: completed, business, customer, variants, products });
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  }
+
+  if (completed) {
+    const completedTotal = invoiceTotal({ lines: completed.lines });
+    const remainder = completedTotal - completed.amountPaid;
+    const changeDue = remainder < 0;
+    return (
+      <div className="checkout-success">
+        <div className="checkout-success-icon">✓</div>
+        <h2>Sale complete</h2>
+        <p className="muted">Invoice {completed.invoiceNumber}</p>
+        <div className="checkout-success-amount">₹{completedTotal.toFixed(2)}</div>
+        <dl className="settings-dl checkout-success-details">
+          <dt>Paid</dt>
+          <dd>₹{completed.amountPaid.toFixed(2)}</dd>
+          <dt>{changeDue ? "Change due" : "Balance due"}</dt>
+          <dd>₹{Math.abs(remainder).toFixed(2)}</dd>
+        </dl>
+        <div className="checkout-success-actions">
+          <button type="button" onClick={printCompleted}>
+            Print receipt
+          </button>
+          <button type="button" onClick={resetCart}>
+            New sale
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="billing-screen">
       <section className="billing-picker">
         <h2>Items</h2>
         <input
-          placeholder="Search products…"
+          ref={searchRef}
+          placeholder="Search by name, SKU, or scan a barcode…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
         />
-        <ul className="picker-list">
-          {filteredVariants.map((variant) => (
-            <li key={variant.id}>
-              <button type="button" onClick={() => addToCart(variant)}>
-                {variantLabel(variant)} · ₹{variant.sellingPrice}
+        {categories.length > 0 && (
+          <div className="category-chips">
+            <button
+              type="button"
+              className={categoryFilter === "" ? "chip active" : "chip"}
+              onClick={() => setCategoryFilter("")}
+            >
+              All
+            </button>
+            {categories
+              .filter((c) => c.enabled)
+              .map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={categoryFilter === c.id ? "chip active" : "chip"}
+                  onClick={() => setCategoryFilter(c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+          </div>
+        )}
+
+        <div className="pos-product-grid">
+          {filteredVariants.map((variant) => {
+            const qty = stock.get(variant.id) ?? 0;
+            const stockClass = qty <= 0 ? "out" : qty <= 5 ? "low" : "ok";
+            return (
+              <button type="button" key={variant.id} className="pos-product-card" onClick={() => addToCart(variant)}>
+                <span className="pos-product-name">{variantLabel(variant)}</span>
+                <span className="pos-product-price">₹{variant.sellingPrice}</span>
+                <span className={`pos-stock-badge ${stockClass}`}>
+                  {qty <= 0 ? "Out of stock" : `${qty} in stock`}
+                </span>
               </button>
-            </li>
-          ))}
-          {filteredVariants.length === 0 && <li className="muted">No products match.</li>}
-        </ul>
+            );
+          })}
+          {filteredVariants.length === 0 && <p className="muted">No products match.</p>}
+        </div>
 
         {heldInvoices.length > 0 && (
           <>
@@ -348,7 +472,7 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
               <span className="cart-line-total">
                 ₹{(lineSubtotal(line) + lineTax(line)).toFixed(2)}
               </span>
-              <button type="button" onClick={() => removeLine(index)}>
+              <button type="button" onClick={() => removeLine(index)} aria-label="Remove item">
                 ✕
               </button>
             </li>
@@ -388,7 +512,15 @@ export default function BillingScreen({ currentEmployee, canVoid }: BillingScree
         <div className="billing-totals">
           <span>Total: ₹{total.toFixed(2)}</span>
           <span className="muted">
-            Balance due: ₹{invoiceBalanceDue({ lines: cart, amountPaid: amountPaid.trim() === "" ? 0 : Number(amountPaid) }).toFixed(2)}
+            {(() => {
+              const remainder = invoiceBalanceDue({
+                lines: cart,
+                amountPaid: amountPaid.trim() === "" ? 0 : Number(amountPaid),
+              });
+              return remainder < 0
+                ? `Change due: ₹${Math.abs(remainder).toFixed(2)}`
+                : `Balance due: ₹${remainder.toFixed(2)}`;
+            })()}
           </span>
         </div>
 

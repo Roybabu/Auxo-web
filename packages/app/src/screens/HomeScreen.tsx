@@ -59,7 +59,9 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       onSignOut={() => void signOut()}
     >
       {section === "dashboard" && <DashboardScreen canViewFinancials={canViewReports || isSuperAdmin} />}
-      {section === "pos" && canBill && <BillingScreen currentEmployee={currentEmployee} canVoid={canVoidBill} />}
+      {section === "pos" && canBill && (
+        <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
+      )}
       {section === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
       {section === "customers" && canViewCustomers && <CustomersScreen canEdit={canEditCustomers} />}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
