@@ -328,7 +328,10 @@ button:active:not(:disabled) {
 .inventory-screen,
 .employees-screen,
 .settings-screen,
-.dashboard-screen {
+.dashboard-screen,
+.customers-screen,
+.suppliers-screen,
+.purchases-screen {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

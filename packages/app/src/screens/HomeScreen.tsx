@@ -8,6 +8,8 @@ import ProductsScreen from "./ProductsScreen.js";
 import InventoryScreen from "./InventoryScreen.js";
 import CustomersScreen from "./CustomersScreen.js";
 import InvoiceHistoryScreen from "./InvoiceHistoryScreen.js";
+import SuppliersScreen from "./SuppliersScreen.js";
+import PurchasesScreen from "./PurchasesScreen.js";
 import ReportsScreen from "./ReportsScreen.js";
 import EmployeesScreen from "./EmployeesScreen.js";
 import SettingsScreen from "./SettingsScreen.js";
@@ -26,6 +28,8 @@ type Section =
   | "inventory"
   | "customers"
   | "history"
+  | "suppliers"
+  | "purchases"
   | "reports"
   | "employees"
   | "settings";
@@ -41,6 +45,8 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
   const canEditCustomers = hasPermission(currentEmployee, "customers.edit");
   const canViewHistory = canBill || hasPermission(currentEmployee, "reports.view");
   const canViewReports = hasPermission(currentEmployee, "reports.view");
+  const canViewPurchases = hasPermission(currentEmployee, "purchases.view");
+  const canEditPurchases = hasPermission(currentEmployee, "purchases.edit");
   const isSuperAdmin = currentEmployee.role === "super_admin";
 
   const navItems: NavItem[] = [
@@ -50,6 +56,8 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
     { key: "inventory", label: "Inventory", show: canViewInventory },
     { key: "customers", label: "Customers", show: canViewCustomers },
     { key: "history", label: "Invoice history", show: canViewHistory },
+    { key: "suppliers", label: "Suppliers", show: canViewPurchases },
+    { key: "purchases", label: "Purchases", show: canViewPurchases },
     { key: "reports", label: "Reports", show: canViewReports },
     { key: "employees", label: "Employees", show: isSuperAdmin },
     { key: "settings", label: "Settings", show: isSuperAdmin },
@@ -79,6 +87,10 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         <CustomersScreen canEdit={canEditCustomers} business={business} />
       )}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
+      {section === "suppliers" && canViewPurchases && <SuppliersScreen canEdit={canEditPurchases} />}
+      {section === "purchases" && canViewPurchases && (
+        <PurchasesScreen canEdit={canEditPurchases} currentEmployee={currentEmployee} />
+      )}
       {section === "reports" && canViewReports && <ReportsScreen />}
       {section === "employees" && isSuperAdmin && <EmployeesScreen />}
       {section === "settings" && isSuperAdmin && <SettingsScreen business={business} onRestored={onRestored} />}

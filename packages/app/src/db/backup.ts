@@ -22,16 +22,27 @@ export class SqliteBackup implements BackupPort {
       if (!DEVICE_LOCAL_KEYS.has(key)) settings[key] = value;
     }
 
-    const [categories, products, productVariants, customers, employees, stockMovements, invoices] =
-      await Promise.all([
-        repos.categories.listAll(),
-        repos.products.listAll(),
-        repos.productVariants.listAll(),
-        repos.customers.listAll(),
-        repos.employees.listAll(),
-        repos.stockMovements.listAll(),
-        repos.invoices.listAll(),
-      ]);
+    const [
+      categories,
+      products,
+      productVariants,
+      customers,
+      employees,
+      stockMovements,
+      invoices,
+      suppliers,
+      purchases,
+    ] = await Promise.all([
+      repos.categories.listAll(),
+      repos.products.listAll(),
+      repos.productVariants.listAll(),
+      repos.customers.listAll(),
+      repos.employees.listAll(),
+      repos.stockMovements.listAll(),
+      repos.invoices.listAll(),
+      repos.suppliers.listAll(),
+      repos.purchases.listAll(),
+    ]);
 
     return {
       formatVersion: BACKUP_FORMAT_VERSION,
@@ -45,6 +56,8 @@ export class SqliteBackup implements BackupPort {
         employees,
         stockMovements,
         invoices,
+        suppliers,
+        purchases,
         settings,
       },
     };
@@ -74,6 +87,8 @@ export class SqliteBackup implements BackupPort {
       ...data.employees.map((r) => repos.employees.save(r)),
       ...data.stockMovements.map((r) => repos.stockMovements.save(r)),
       ...data.invoices.map((r) => repos.invoices.save(r)),
+      ...(data.suppliers ?? []).map((r) => repos.suppliers.save(r)),
+      ...(data.purchases ?? []).map((r) => repos.purchases.save(r)),
       ...Object.entries(data.settings)
         .filter(([key]) => !DEVICE_LOCAL_KEYS.has(key))
         .map(([key, value]) => repos.settings.set(key, value)),
