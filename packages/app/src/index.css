@@ -118,6 +118,67 @@ button:active:not(:disabled) {
   padding: 1.5rem;
 }
 
+.auth-screen,
+.splash-screen {
+  background: linear-gradient(180deg, var(--bg) 0%, var(--emerald-pale) 140%);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.auth-brand h1 {
+  margin: 0;
+}
+
+.brand-mark-lg {
+  width: 48px;
+  height: 48px;
+  font-size: 1.5rem;
+  border-radius: 12px;
+}
+
+.splash-pulse {
+  animation: splash-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes splash-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+.password-field {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.password-field input {
+  flex: 1;
+}
+
+.password-toggle {
+  background: var(--bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  padding: 0 0.6rem;
+  white-space: nowrap;
+}
+
+.password-toggle:hover {
+  background: var(--emerald-pale);
+  color: var(--emerald-dark);
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;
