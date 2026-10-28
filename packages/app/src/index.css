@@ -892,6 +892,22 @@ button:active:not(:disabled) {
   color: #b3261e;
 }
 
+.back-link {
+  background: transparent;
+  color: var(--emerald-dark);
+  border: none;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  align-self: flex-start;
+  box-shadow: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+  background: transparent;
+}
+
 /* --- Reports --- */
 
 .reports-screen {

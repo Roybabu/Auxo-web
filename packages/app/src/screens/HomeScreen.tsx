@@ -75,7 +75,9 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       )}
       {section === "products" && canViewInventory && <ProductsScreen canEdit={canEditInventory} />}
       {section === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
-      {section === "customers" && canViewCustomers && <CustomersScreen canEdit={canEditCustomers} />}
+      {section === "customers" && canViewCustomers && (
+        <CustomersScreen canEdit={canEditCustomers} business={business} />
+      )}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
       {section === "reports" && canViewReports && <ReportsScreen />}
       {section === "employees" && isSuperAdmin && <EmployeesScreen />}
