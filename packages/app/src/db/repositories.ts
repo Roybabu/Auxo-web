@@ -9,6 +9,7 @@ import type {
   Supplier,
   Purchase,
   Return,
+  DayClosing,
 } from "@auxo/core";
 import { SqliteRepository } from "./sqliteRepository.js";
 import { SqliteKeyValueStore } from "./sqliteKv.js";
@@ -29,6 +30,7 @@ export interface Repositories {
   suppliers: SqliteRepository<Supplier>;
   purchases: SqliteRepository<Purchase>;
   returns: SqliteRepository<Return>;
+  dayClosings: SqliteRepository<DayClosing>;
   settings: SqliteKeyValueStore;
 }
 
@@ -46,6 +48,7 @@ export function getRepositories(): Repositories {
     suppliers: new SqliteRepository<Supplier>("supplier"),
     purchases: new SqliteRepository<Purchase>("purchase"),
     returns: new SqliteRepository<Return>("return"),
+    dayClosings: new SqliteRepository<DayClosing>("day_closing"),
     settings: new SqliteKeyValueStore(),
   };
   return repositories;

@@ -6,6 +6,7 @@ import type { Invoice } from "./invoice.js";
 import type { Supplier } from "./supplier.js";
 import type { Purchase } from "./purchase.js";
 import type { Return } from "./return.js";
+import type { DayClosing } from "./dayClosing.js";
 
 /**
  * The neutral JSON export/import format. "Neutral" means: no SQLite
@@ -32,6 +33,7 @@ export interface AuxoBackupData {
   suppliers?: Supplier[];
   purchases?: Purchase[];
   returns?: Return[];
+  dayClosings?: DayClosing[];
   /** Shop settings and other small key/value state (business name, GST, FSSAI no., etc). */
   settings: Record<string, string>;
 }
@@ -89,6 +91,7 @@ export function emptyBackupData(): AuxoBackupData {
     suppliers: [],
     purchases: [],
     returns: [],
+    dayClosings: [],
     settings: {},
   };
 }

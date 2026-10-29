@@ -332,7 +332,8 @@ button:active:not(:disabled) {
 .customers-screen,
 .suppliers-screen,
 .purchases-screen,
-.returns-screen {
+.returns-screen,
+.day-closing-screen {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
