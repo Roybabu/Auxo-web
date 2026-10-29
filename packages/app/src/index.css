@@ -1151,6 +1151,217 @@ button:active:not(:disabled) {
   gap: 0.5rem;
 }
 
+.checkout-button {
+  background: var(--emerald);
+  color: white;
+  font-weight: 600;
+}
+
+/* --- POS top bar & status bar --- */
+
+.pos-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pos-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pos-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.pos-search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.pos-search-field input {
+  width: 100%;
+  padding: 0.55rem 0.75rem 0.55rem 2.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.pos-topbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.pos-topbar-button:hover {
+  border-color: var(--emerald);
+  color: var(--emerald-dark);
+}
+
+.pos-topbar-button kbd,
+.pos-statusbar kbd {
+  font-family: inherit;
+  font-size: 0.7rem;
+  background: var(--emerald-pale);
+  color: var(--emerald-dark);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  margin-left: 0.15rem;
+}
+
+.pos-quick-actions.quick-actions {
+  margin-bottom: 0;
+}
+
+.pos-quick-actions .quick-action-button {
+  align-items: flex-start;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.pos-quick-actions .quick-action-button span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  text-align: left;
+}
+
+.pos-quick-actions .quick-action-button strong {
+  font-size: 0.85rem;
+}
+
+.pos-quick-actions .quick-action-button small {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.pos-cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.4rem;
+  margin-left: 0.5rem;
+  background: var(--emerald);
+  color: white;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.cart-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.3rem;
+}
+
+.cart-qty-stepper button {
+  width: 1.3rem;
+  height: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  padding: 0;
+}
+
+.cart-qty-stepper span {
+  min-width: 1.1rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.cart-remove-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--danger);
+  border: none;
+  padding: 0.25rem;
+}
+
+.cart-remove-button:hover {
+  background: #fee2e2;
+  border-radius: 6px;
+}
+
+.pos-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.pos-statusbar-shortcuts {
+  flex: 1;
+}
+
+.pos-status-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+
+.pos-status-online.online {
+  color: var(--emerald-dark);
+}
+
+.pos-status-online.offline {
+  color: var(--danger);
+}
+
+.pos-statusbar-printer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+@media (max-width: 960px) {
+  .pos-statusbar-shortcuts {
+    display: none;
+  }
+}
+
 /* --- Checkout modal --- */
 
 .checkout-modal-overlay {

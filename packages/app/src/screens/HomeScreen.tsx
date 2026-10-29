@@ -129,7 +129,12 @@ export default function HomeScreen({
         />
       )}
       {section === "pos" && canBill && (
-        <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
+        <BillingScreen
+          business={business}
+          currentEmployee={currentEmployee}
+          canVoid={canVoidBill}
+          onNavigate={(key) => setSection(key as Section)}
+        />
       )}
       {section === "products" && canViewInventory && (
         <ProductsScreen canEdit={canEditInventory} currentEmployee={currentEmployee} />

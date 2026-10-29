@@ -22,7 +22,26 @@ import {
   type ProductVariant,
   type StockMovement,
 } from "@auxo/core";
-import { Banknote, CreditCard, Smartphone, Receipt as ReceiptIcon, X } from "lucide-react";
+import {
+  Banknote,
+  CreditCard,
+  Smartphone,
+  Receipt as ReceiptIcon,
+  X,
+  Search,
+  ScanLine,
+  Plus,
+  Minus,
+  Trash2,
+  PauseCircle,
+  Clock,
+  Zap,
+  Undo2,
+  BarChart3,
+  Wifi,
+  WifiOff,
+  Printer,
+} from "lucide-react";
 import { getRepositories } from "../db/repositories.js";
 import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
@@ -66,9 +85,29 @@ interface BillingScreenProps {
   business: Business;
   currentEmployee: Employee;
   canVoid: boolean;
+  onNavigate?: (section: string) => void;
 }
 
-export default function BillingScreen({ business, currentEmployee, canVoid }: BillingScreenProps) {
+/** Live HH:MM clock + online/offline flag for the POS status bar. */
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 15_000);
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+  return { now, online };
+}
+
+export default function BillingScreen({ business, currentEmployee, canVoid, onNavigate }: BillingScreenProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -90,14 +129,25 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
   const [completed, setCompleted] = useState<Invoice | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"review" | "payment">("review");
+  const [paperWidthMm, setPaperWidthMm] = useState<56 | 76 | 80>(80);
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const { now, online } = useClock();
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "F4" && checkoutOpen && checkoutStep === "payment" && !submitting) {
         e.preventDefault();
         void completeSale();
+      } else if (e.key === "F2" && !checkoutOpen) {
+        e.preventDefault();
+        void holdSale();
+      } else if (e.key === "F3" && !checkoutOpen) {
+        e.preventDefault();
+        onNavigate?.("history");
+      } else if (e.key === "k" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        searchRef.current?.focus();
       }
     }
     window.addEventListener("keydown", handleKey);
@@ -106,7 +156,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
 
   async function refreshAll() {
     const repos = getRepositories();
-    const [prods, vars, cats, custs, invoices, moves, paymentSettings] = await Promise.all([
+    const [prods, vars, cats, custs, invoices, moves, paymentSettings, receiptSettings] = await Promise.all([
       repos.products.list(),
       repos.productVariants.list(),
       repos.categories.list(),
@@ -114,6 +164,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
       repos.invoices.list(),
       repos.stockMovements.list(),
       getPaymentMethodSettings(),
+      getReceiptSettings(),
     ]);
     setProducts(prods);
     setVariants(vars);
@@ -122,6 +173,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     setHeldInvoices(invoices.filter((i) => i.status === "held"));
     setMovements(moves);
     setEnabledPaymentMethods(paymentSettings.enabledMethods);
+    setPaperWidthMm(receiptSettings.paperWidthMm);
     setPaymentMethod((prev) =>
       paymentSettings.enabledMethods.includes(prev) ? prev : paymentSettings.enabledMethods[0] ?? "cash"
     );
@@ -460,17 +512,73 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     );
   }
 
+  const cartCount = cart.reduce((sum, l) => sum + l.quantity, 0);
+
   return (
-    <div className="billing-screen">
+    <div className="pos-screen">
+      <div className="pos-topbar">
+        <div className="pos-search-field">
+          <Search size={16} className="pos-search-icon" />
+          <input
+            ref={searchRef}
+            placeholder="Search products, barcode or SKU…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+          />
+        </div>
+        <button type="button" className="pos-topbar-button" onClick={() => searchRef.current?.focus()}>
+          <ScanLine size={16} />
+          Scan <kbd>Ctrl+K</kbd>
+        </button>
+        <button type="button" className="pos-topbar-button" onClick={() => onNavigate?.("products")}>
+          <Plus size={16} />
+          New Product
+        </button>
+        <button type="button" className="pos-topbar-button" onClick={() => void holdSale()} disabled={submitting}>
+          <PauseCircle size={16} />
+          Hold Bill <kbd>F2</kbd>
+        </button>
+        <button type="button" className="pos-topbar-button" onClick={() => onNavigate?.("history")}>
+          <Clock size={16} />
+          Recent Bills <kbd>F3</kbd>
+        </button>
+      </div>
+
+      <div className="quick-actions pos-quick-actions">
+        <button type="button" className="quick-action-button" onClick={() => searchRef.current?.focus()}>
+          <Zap size={16} />
+          <span>
+            <strong>Fast Billing</strong>
+            <small>Scan or search products</small>
+          </span>
+        </button>
+        <button type="button" className="quick-action-button" onClick={() => onNavigate?.("products")}>
+          <Plus size={16} />
+          <span>
+            <strong>New Product</strong>
+            <small>Add product quickly</small>
+          </span>
+        </button>
+        <button type="button" className="quick-action-button" onClick={() => onNavigate?.("returns")}>
+          <Undo2 size={16} />
+          <span>
+            <strong>Return / Exchange</strong>
+            <small>Process returns</small>
+          </span>
+        </button>
+        <button type="button" className="quick-action-button" onClick={() => onNavigate?.("dayClosing")}>
+          <BarChart3 size={16} />
+          <span>
+            <strong>Daily Summary</strong>
+            <small>View today's sales</small>
+          </span>
+        </button>
+      </div>
+
+      <div className="billing-screen">
       <section className="billing-picker">
         <h2>Items</h2>
-        <input
-          ref={searchRef}
-          placeholder="Search by name, SKU, or scan a barcode…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-        />
         {categories.length > 0 && (
           <div className="category-chips">
             <button
@@ -541,19 +649,32 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
       </section>
 
       <section className="billing-cart">
-        <h2>{resumingInvoice ? `Resuming ${resumingInvoice.invoiceNumber}` : "Current sale"}</h2>
+        <h2>
+          {resumingInvoice ? `Resuming ${resumingInvoice.invoiceNumber}` : "Current sale"}
+          {cartCount > 0 && <span className="pos-cart-count">{cartCount}</span>}
+        </h2>
         <ul className="cart-list">
           {cart.map((line, index) => (
             <li key={line.productVariantId} className="cart-row">
+              <ProductThumb name={line.label} categoryName={null} size={32} />
               <span className="cart-label">{line.label}</span>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={line.quantity}
-                onChange={(e) => updateLine(index, { quantity: Number(e.target.value) })}
-                aria-label="Quantity"
-              />
+              <div className="cart-qty-stepper">
+                <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  onClick={() => updateLine(index, { quantity: Math.max(1, line.quantity - 1) })}
+                >
+                  <Minus size={12} />
+                </button>
+                <span>{line.quantity}</span>
+                <button
+                  type="button"
+                  aria-label="Increase quantity"
+                  onClick={() => updateLine(index, { quantity: line.quantity + 1 })}
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
               <span className="muted">× ₹{line.unitPrice}</span>
               <input
                 type="number"
@@ -577,8 +698,8 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
               <span className="cart-line-total">
                 ₹{(lineSubtotal(line) + lineTax(line)).toFixed(2)}
               </span>
-              <button type="button" onClick={() => removeLine(index)} aria-label="Remove item">
-                ✕
+              <button type="button" onClick={() => removeLine(index)} aria-label="Remove item" className="cart-remove-button">
+                <Trash2 size={14} />
               </button>
             </li>
           ))}
@@ -610,11 +731,8 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
         {error && <p className="error">{error}</p>}
 
         <div className="billing-actions">
-          <button type="button" onClick={() => void holdSale()} disabled={submitting}>
-            Hold
-          </button>
-          <button type="button" onClick={openCheckout} disabled={submitting || cart.length === 0}>
-            Checkout
+          <button type="button" className="checkout-button" onClick={openCheckout} disabled={submitting || cart.length === 0}>
+            Proceed to Payment → <kbd>F4</kbd>
           </button>
           {cart.length > 0 && (
             <button type="button" onClick={resetCart} disabled={submitting}>
@@ -623,6 +741,26 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           )}
         </div>
       </section>
+      </div>
+
+      <div className="pos-statusbar">
+        <span>
+          {now.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })} ·{" "}
+          {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+        </span>
+        <span className={`pos-status-online ${online ? "online" : "offline"}`}>
+          {online ? <Wifi size={13} /> : <WifiOff size={13} />}
+          {online ? "Online" : "Offline"}
+        </span>
+        <span className="pos-statusbar-shortcuts">
+          <strong>Shortcuts:</strong> <kbd>F2</kbd> Hold Bill <kbd>F3</kbd> Recent Bills <kbd>F4</kbd> Checkout{" "}
+          <kbd>Ctrl+K</kbd> Focus Search
+        </span>
+        <span className="pos-statusbar-printer">
+          <Printer size={13} />
+          Receipt paper {paperWidthMm}mm
+        </span>
+      </div>
 
       {checkoutOpen && (
         <div className="checkout-modal-overlay" onClick={() => setCheckoutOpen(false)}>
