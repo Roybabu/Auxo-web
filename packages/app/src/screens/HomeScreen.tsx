@@ -12,6 +12,7 @@ import SuppliersScreen from "./SuppliersScreen.js";
 import PurchasesScreen from "./PurchasesScreen.js";
 import ReturnsScreen from "./ReturnsScreen.js";
 import DayClosingScreen from "./DayClosingScreen.js";
+import ActivityLogScreen from "./ActivityLogScreen.js";
 import ReportsScreen from "./ReportsScreen.js";
 import EmployeesScreen from "./EmployeesScreen.js";
 import SettingsScreen from "./SettingsScreen.js";
@@ -36,6 +37,7 @@ type Section =
   | "purchases"
   | "reports"
   | "employees"
+  | "activityLog"
   | "settings";
 
 export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
@@ -66,6 +68,7 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
     { key: "purchases", label: "Purchases", show: canViewPurchases },
     { key: "reports", label: "Reports", show: canViewReports },
     { key: "employees", label: "Employees", show: isSuperAdmin },
+    { key: "activityLog", label: "Activity log", show: isSuperAdmin },
     { key: "settings", label: "Settings", show: isSuperAdmin },
   ];
 
@@ -87,10 +90,14 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       {section === "pos" && canBill && (
         <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
       )}
-      {section === "products" && canViewInventory && <ProductsScreen canEdit={canEditInventory} />}
-      {section === "inventory" && canViewInventory && <InventoryScreen canEdit={canEditInventory} />}
+      {section === "products" && canViewInventory && (
+        <ProductsScreen canEdit={canEditInventory} currentEmployee={currentEmployee} />
+      )}
+      {section === "inventory" && canViewInventory && (
+        <InventoryScreen canEdit={canEditInventory} currentEmployee={currentEmployee} />
+      )}
       {section === "customers" && canViewCustomers && (
-        <CustomersScreen canEdit={canEditCustomers} business={business} />
+        <CustomersScreen canEdit={canEditCustomers} business={business} currentEmployee={currentEmployee} />
       )}
       {section === "history" && canViewHistory && <InvoiceHistoryScreen business={business} />}
       {section === "returns" && canViewHistory && (
@@ -99,12 +106,15 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
       {section === "dayClosing" && canBill && (
         <DayClosingScreen canEdit={canBill} currentEmployee={currentEmployee} />
       )}
-      {section === "suppliers" && canViewPurchases && <SuppliersScreen canEdit={canEditPurchases} />}
+      {section === "suppliers" && canViewPurchases && (
+        <SuppliersScreen canEdit={canEditPurchases} currentEmployee={currentEmployee} />
+      )}
       {section === "purchases" && canViewPurchases && (
         <PurchasesScreen canEdit={canEditPurchases} currentEmployee={currentEmployee} />
       )}
       {section === "reports" && canViewReports && <ReportsScreen />}
-      {section === "employees" && isSuperAdmin && <EmployeesScreen />}
+      {section === "employees" && isSuperAdmin && <EmployeesScreen currentEmployee={currentEmployee} />}
+      {section === "activityLog" && isSuperAdmin && <ActivityLogScreen />}
       {section === "settings" && isSuperAdmin && <SettingsScreen business={business} onRestored={onRestored} />}
     </AppShell>
   );

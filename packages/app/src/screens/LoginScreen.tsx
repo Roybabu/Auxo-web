@@ -2,6 +2,7 @@ import { useState } from "react";
 import { attemptLogin, newSession, type Employee } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { setSession } from "../appState.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface LoginScreenProps {
   businessName: string;
@@ -28,6 +29,11 @@ export default function LoginScreen({ businessName, onLoggedIn, onWantsSetup }: 
         return;
       }
       await setSession(newSession(result.employee.id));
+      void logActivity({
+        employeeId: result.employee.id,
+        action: "employee.login",
+        summary: `${result.employee.name} signed in`,
+      });
       onLoggedIn(result.employee);
     } finally {
       setSubmitting(false);

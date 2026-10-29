@@ -3,20 +3,23 @@ import {
   newStockMovement,
   stockByVariant,
   type Category,
+  type Employee,
   type Product,
   type ProductVariant,
   type StockMovement,
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface InventoryScreenProps {
   canEdit: boolean;
+  currentEmployee: Employee;
 }
 
 const LOW_STOCK_THRESHOLD = 5;
 
 /** Stock-focused view: summary counts, current levels with quick adjustments, and movement history. */
-export default function InventoryScreen({ canEdit }: InventoryScreenProps) {
+export default function InventoryScreen({ canEdit, currentEmployee }: InventoryScreenProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -91,6 +94,11 @@ export default function InventoryScreen({ canEdit }: InventoryScreenProps) {
     });
     await repos.stockMovements.save(movement);
     await refresh();
+    void logActivity({
+      employeeId: currentEmployee.id,
+      action: "stock.adjusted",
+      summary: `Adjusted ${productName(variant.productId)} — ${variant.name} by ${delta > 0 ? "+" : ""}${delta}`,
+    });
   }
 
   if (loading) return <p className="muted">Loading inventory…</p>;

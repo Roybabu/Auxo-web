@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { newSupplier, type Supplier } from "@auxo/core";
+import { newSupplier, type Employee, type Supplier } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface SuppliersScreenProps {
   canEdit: boolean;
+  currentEmployee: Employee;
 }
 
-export default function SuppliersScreen({ canEdit }: SuppliersScreenProps) {
+export default function SuppliersScreen({ canEdit, currentEmployee }: SuppliersScreenProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,13 +75,19 @@ export default function SuppliersScreen({ canEdit }: SuppliersScreenProps) {
             )}
           </tbody>
         </table>
-        {canEdit && <AddSupplierForm onAdded={refresh} />}
+        {canEdit && <AddSupplierForm currentEmployee={currentEmployee} onAdded={refresh} />}
       </section>
     </div>
   );
 }
 
-function AddSupplierForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
+function AddSupplierForm({
+  currentEmployee,
+  onAdded,
+}: {
+  currentEmployee: Employee;
+  onAdded: () => void | Promise<void>;
+}) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -107,6 +115,11 @@ function AddSupplierForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
       setAddress("");
       setGstin("");
       await onAdded();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "supplier.created",
+        summary: `Added supplier "${supplier.name}"`,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

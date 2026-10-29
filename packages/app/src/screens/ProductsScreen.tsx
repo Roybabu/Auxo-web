@@ -6,18 +6,21 @@ import {
   newStockMovement,
   stockByVariant,
   type Category,
+  type Employee,
   type Product,
   type ProductVariant,
   type StockMovement,
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface ProductsScreenProps {
   canEdit: boolean;
+  currentEmployee: Employee;
 }
 
 /** Product catalog management: categories and products/variants with search and filters. */
-export default function ProductsScreen({ canEdit }: ProductsScreenProps) {
+export default function ProductsScreen({ canEdit, currentEmployee }: ProductsScreenProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -153,7 +156,9 @@ export default function ProductsScreen({ canEdit }: ProductsScreenProps) {
           </tbody>
         </table>
 
-        {canEdit && <AddProductForm categories={categories} onAdded={refresh} />}
+        {canEdit && (
+          <AddProductForm categories={categories} currentEmployee={currentEmployee} onAdded={refresh} />
+        )}
       </section>
     </div>
   );
@@ -192,9 +197,11 @@ function AddCategoryForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
 
 function AddProductForm({
   categories,
+  currentEmployee,
   onAdded,
 }: {
   categories: Category[];
+  currentEmployee: Employee;
   onAdded: () => void | Promise<void>;
 }) {
   const [name, setName] = useState("");
@@ -252,6 +259,11 @@ function AddProductForm({
       setSellingPrice("");
       setInitialStock("0");
       await onAdded();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "product.created",
+        summary: `Added product "${product.name}" (${variant.name})`,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

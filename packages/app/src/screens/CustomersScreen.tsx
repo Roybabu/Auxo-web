@@ -4,19 +4,22 @@ import {
   newCustomer,
   type Business,
   type Customer,
+  type Employee,
   type Invoice,
   type Product,
   type ProductVariant,
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface CustomersScreenProps {
   canEdit: boolean;
   business: Business;
+  currentEmployee: Employee;
 }
 
-export default function CustomersScreen({ canEdit, business }: CustomersScreenProps) {
+export default function CustomersScreen({ canEdit, business, currentEmployee }: CustomersScreenProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -113,7 +116,7 @@ export default function CustomersScreen({ canEdit, business }: CustomersScreenPr
             )}
           </tbody>
         </table>
-        {canEdit && <AddCustomerForm onAdded={refresh} />}
+        {canEdit && <AddCustomerForm currentEmployee={currentEmployee} onAdded={refresh} />}
       </section>
     </div>
   );
@@ -228,7 +231,13 @@ function CustomerDetails({
   );
 }
 
-function AddCustomerForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
+function AddCustomerForm({
+  currentEmployee,
+  onAdded,
+}: {
+  currentEmployee: Employee;
+  onAdded: () => void | Promise<void>;
+}) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [creditLimit, setCreditLimit] = useState("");
@@ -250,6 +259,11 @@ function AddCustomerForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
       setPhone("");
       setCreditLimit("");
       await onAdded();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "customer.created",
+        summary: `Added customer "${customer.name}"`,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

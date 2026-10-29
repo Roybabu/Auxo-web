@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { ALL_PERMISSIONS, newEmployee, type Employee, type Permission } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
+import { logActivity } from "../db/activityLog.js";
 
-export default function EmployeesScreen() {
+interface EmployeesScreenProps {
+  currentEmployee: Employee;
+}
+
+export default function EmployeesScreen({ currentEmployee }: EmployeesScreenProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,13 +36,21 @@ export default function EmployeesScreen() {
           ))}
           {employees.length === 0 && <li className="muted">No employees yet.</li>}
         </ul>
-        <AddEmployeeForm existing={employees} onAdded={refresh} />
+        <AddEmployeeForm existing={employees} currentEmployee={currentEmployee} onAdded={refresh} />
       </section>
     </div>
   );
 }
 
-function AddEmployeeForm({ existing, onAdded }: { existing: Employee[]; onAdded: () => void | Promise<void> }) {
+function AddEmployeeForm({
+  existing,
+  currentEmployee,
+  onAdded,
+}: {
+  existing: Employee[];
+  currentEmployee: Employee;
+  onAdded: () => void | Promise<void>;
+}) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -69,6 +82,11 @@ function AddEmployeeForm({ existing, onAdded }: { existing: Employee[]; onAdded:
       setPassword("");
       setPermissions(new Set());
       await onAdded();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "employee.created",
+        summary: `Added employee "${employee.name}" (@${employee.username})`,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

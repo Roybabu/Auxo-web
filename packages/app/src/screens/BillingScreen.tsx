@@ -23,6 +23,7 @@ import { getRepositories } from "../db/repositories.js";
 import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface CartLine {
   productVariantId: string;
@@ -283,6 +284,12 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
       setCompleted(invoice);
       setCart([]);
       await refreshAll();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "sale.completed",
+        summary: `Completed sale ${invoice.invoiceNumber} for ₹${invoiceTotal({ lines: invoice.lines }).toFixed(2)}`,
+        metadata: { invoiceNumber: invoice.invoiceNumber },
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -316,6 +323,12 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     await repos.invoices.save({ ...invoice, status: "voided", updatedAt: new Date().toISOString() });
     if (resumingInvoice?.id === invoice.id) resetCart();
     await refreshAll();
+    void logActivity({
+      employeeId: currentEmployee.id,
+      action: "sale.voided",
+      summary: `Voided held bill ${invoice.invoiceNumber}`,
+      metadata: { invoiceNumber: invoice.invoiceNumber },
+    });
   }
 
   function printCompleted() {

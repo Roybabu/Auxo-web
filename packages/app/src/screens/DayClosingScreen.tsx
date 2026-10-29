@@ -9,6 +9,7 @@ import {
   type Return,
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface DayClosingScreenProps {
   canEdit: boolean;
@@ -200,6 +201,12 @@ function CloseForm({
       });
       await getRepositories().dayClosings.save(closing);
       await onClosed();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "day.closed",
+        summary: `Closed ${today} — counted ₹${counted.toFixed(2)} (variance ${closing.variance >= 0 ? "+" : ""}${closing.variance.toFixed(2)})`,
+        metadata: { businessDate: today },
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

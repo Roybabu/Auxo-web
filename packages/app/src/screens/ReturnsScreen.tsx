@@ -15,6 +15,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { allocateNextReturnNumber } from "../db/returnSequence.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface ReturnsScreenProps {
   canEdit: boolean;
@@ -241,6 +242,13 @@ function ReturnForm({
       }
 
       await repos.invoices.save({ ...invoice, paymentStatus: "return", updatedAt: new Date().toISOString() });
+
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "return.processed",
+        summary: `Processed return ${ret.returnNumber} against invoice ${invoice.invoiceNumber} (${resolution === "store_credit" ? "credit note" : "cash refund"})`,
+        metadata: { returnNumber: ret.returnNumber, invoiceNumber: invoice.invoiceNumber },
+      });
 
       await onDone();
     } catch (err: unknown) {

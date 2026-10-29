@@ -10,6 +10,7 @@ import type {
   Purchase,
   Return,
   DayClosing,
+  ActivityLog,
 } from "@auxo/core";
 import { SqliteRepository } from "./sqliteRepository.js";
 import { SqliteKeyValueStore } from "./sqliteKv.js";
@@ -31,6 +32,7 @@ export interface Repositories {
   purchases: SqliteRepository<Purchase>;
   returns: SqliteRepository<Return>;
   dayClosings: SqliteRepository<DayClosing>;
+  activityLogs: SqliteRepository<ActivityLog>;
   settings: SqliteKeyValueStore;
 }
 
@@ -49,6 +51,7 @@ export function getRepositories(): Repositories {
     purchases: new SqliteRepository<Purchase>("purchase"),
     returns: new SqliteRepository<Return>("return"),
     dayClosings: new SqliteRepository<DayClosing>("day_closing"),
+    activityLogs: new SqliteRepository<ActivityLog>("activity_log"),
     settings: new SqliteKeyValueStore(),
   };
   return repositories;

@@ -15,6 +15,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { allocateNextPurchaseNumber } from "../db/purchaseSequence.js";
+import { logActivity } from "../db/activityLog.js";
 
 interface PurchasesScreenProps {
   canEdit: boolean;
@@ -67,6 +68,12 @@ export default function PurchasesScreen({ canEdit, currentEmployee }: PurchasesS
       }
       await repos.purchases.save(markPurchaseReceived(purchase));
       await refresh();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "purchase.received",
+        summary: `Received goods for purchase ${purchase.purchaseNumber}`,
+        metadata: { purchaseNumber: purchase.purchaseNumber },
+      });
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -80,6 +87,12 @@ export default function PurchasesScreen({ canEdit, currentEmployee }: PurchasesS
     try {
       await getRepositories().purchases.save(cancelPurchase(purchase));
       await refresh();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "purchase.cancelled",
+        summary: `Cancelled purchase ${purchase.purchaseNumber}`,
+        metadata: { purchaseNumber: purchase.purchaseNumber },
+      });
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -237,6 +250,12 @@ function NewPurchaseForm({
       setLines([]);
       setNote("");
       await onCreated();
+      void logActivity({
+        employeeId: currentEmployee.id,
+        action: "purchase.created",
+        summary: `Created purchase ${purchase.purchaseNumber} for ₹${purchaseTotal({ lines: purchase.lines }).toFixed(2)}`,
+        metadata: { purchaseNumber: purchase.purchaseNumber },
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

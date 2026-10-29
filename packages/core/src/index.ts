@@ -19,3 +19,4 @@ export * from "./supplier.js";
 export * from "./purchase.js";
 export * from "./return.js";
 export * from "./dayClosing.js";
+export * from "./activityLog.js";

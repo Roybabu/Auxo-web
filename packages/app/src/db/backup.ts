@@ -34,6 +34,7 @@ export class SqliteBackup implements BackupPort {
       purchases,
       returns,
       dayClosings,
+      activityLogs,
     ] = await Promise.all([
       repos.categories.listAll(),
       repos.products.listAll(),
@@ -46,6 +47,7 @@ export class SqliteBackup implements BackupPort {
       repos.purchases.listAll(),
       repos.returns.listAll(),
       repos.dayClosings.listAll(),
+      repos.activityLogs.listAll(),
     ]);
 
     return {
@@ -64,6 +66,7 @@ export class SqliteBackup implements BackupPort {
         purchases,
         returns,
         dayClosings,
+        activityLogs,
         settings,
       },
     };
@@ -97,6 +100,7 @@ export class SqliteBackup implements BackupPort {
       ...(data.purchases ?? []).map((r) => repos.purchases.save(r)),
       ...(data.returns ?? []).map((r) => repos.returns.save(r)),
       ...(data.dayClosings ?? []).map((r) => repos.dayClosings.save(r)),
+      ...(data.activityLogs ?? []).map((r) => repos.activityLogs.save(r)),
       ...Object.entries(data.settings)
         .filter(([key]) => !DEVICE_LOCAL_KEYS.has(key))
         .map(([key, value]) => repos.settings.set(key, value)),
