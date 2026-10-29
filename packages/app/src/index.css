@@ -1151,6 +1151,183 @@ button:active:not(:disabled) {
   gap: 0.5rem;
 }
 
+/* --- Checkout modal --- */
+
+.checkout-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 78, 59, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.checkout-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.checkout-steps {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.checkout-step {
+  color: var(--text-secondary);
+}
+
+.checkout-step.active {
+  color: var(--emerald-dark);
+  font-weight: 700;
+}
+
+.checkout-step.done {
+  color: var(--emerald);
+}
+
+.checkout-modal-close {
+  background: none;
+  color: var(--text-secondary);
+  box-shadow: none;
+  padding: 0.3rem;
+}
+
+.checkout-modal-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.checkout-modal-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.checkout-modal-body h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.checkout-bill-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.checkout-bill-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.checkout-bill-name {
+  flex: 1;
+}
+
+.checkout-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+}
+
+.checkout-totals > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.checkout-total-grand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.3rem;
+  padding-top: 0.4rem;
+  color: var(--emerald-dark);
+}
+
+.payment-method-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.payment-method-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.payment-method-tile.selected {
+  background: var(--emerald-pale);
+  border-color: var(--emerald);
+  color: var(--emerald-dark);
+}
+
+.quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.quick-amounts button {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.quick-amounts button:hover {
+  border-color: var(--emerald);
+  color: var(--emerald-dark);
+}
+
+.checkout-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
 /* --- Customers --- */
 
 .customer-list {

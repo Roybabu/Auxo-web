@@ -22,6 +22,7 @@ import {
   type ProductVariant,
   type StockMovement,
 } from "@auxo/core";
+import { Banknote, CreditCard, Smartphone, Receipt as ReceiptIcon, X } from "lucide-react";
 import { getRepositories } from "../db/repositories.js";
 import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
@@ -39,6 +40,26 @@ interface CartLine {
   unitPrice: number;
   discountAmount: number;
   taxRatePercent: number;
+}
+
+const PAYMENT_METHOD_ICONS: Record<PaymentMethod, typeof Banknote> = {
+  cash: Banknote,
+  card: CreditCard,
+  upi: Smartphone,
+  credit: ReceiptIcon,
+};
+
+/** A handful of round "amount received" suggestions at or above the total, for fast cash entry. */
+function quickAmounts(amount: number): number[] {
+  if (amount <= 0) return [];
+  const suggestions = new Set<number>([Math.ceil(amount)]);
+  for (const step of [100, 500, 1000, 2000, 5000]) {
+    const rounded = Math.ceil(amount / step) * step;
+    if (rounded > amount) suggestions.add(rounded);
+  }
+  return Array.from(suggestions)
+    .sort((a, b) => a - b)
+    .slice(0, 4);
 }
 
 interface BillingScreenProps {
@@ -67,8 +88,21 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState<Invoice | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"review" | "payment">("review");
 
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "F4" && checkoutOpen && checkoutStep === "payment" && !submitting) {
+        e.preventDefault();
+        void completeSale();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
 
   async function refreshAll() {
     const repos = getRepositories();
@@ -192,6 +226,18 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     setResumingInvoice(null);
     setError(null);
     setCompleted(null);
+    setCheckoutOpen(false);
+    setCheckoutStep("review");
+  }
+
+  function openCheckout() {
+    setError(null);
+    if (cart.length === 0) {
+      setError("Add at least one item before checking out.");
+      return;
+    }
+    setCheckoutStep("review");
+    setCheckoutOpen(true);
   }
 
   const total = invoiceTotal({ lines: cart });
@@ -326,6 +372,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
 
       setCompleted(invoice);
       setCart([]);
+      setCheckoutOpen(false);
       await refreshAll();
       void logActivity({
         employeeId: currentEmployee.id,
@@ -554,42 +601,10 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
             Table (optional)
             <input value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} />
           </label>
-          <label>
-            Amount paid now
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={amountPaid}
-              onChange={(e) => setAmountPaid(e.target.value)}
-              placeholder={total.toFixed(2)}
-            />
-          </label>
-          <label>
-            Payment method
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
-              {enabledPaymentMethods.map((method) => (
-                <option key={method} value={method}>
-                  {method === "upi" ? "UPI" : method.charAt(0).toUpperCase() + method.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
 
         <div className="billing-totals">
           <span>Total: ₹{total.toFixed(2)}</span>
-          <span className="muted">
-            {(() => {
-              const remainder = invoiceBalanceDue({
-                lines: cart,
-                amountPaid: amountPaid.trim() === "" ? 0 : Number(amountPaid),
-              });
-              return remainder < 0
-                ? `Change due: ₹${Math.abs(remainder).toFixed(2)}`
-                : `Balance due: ₹${remainder.toFixed(2)}`;
-            })()}
-          </span>
         </div>
 
         {error && <p className="error">{error}</p>}
@@ -598,8 +613,8 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           <button type="button" onClick={() => void holdSale()} disabled={submitting}>
             Hold
           </button>
-          <button type="button" onClick={() => void completeSale()} disabled={submitting}>
-            {submitting ? "Working…" : "Complete sale"}
+          <button type="button" onClick={openCheckout} disabled={submitting || cart.length === 0}>
+            Checkout
           </button>
           {cart.length > 0 && (
             <button type="button" onClick={resetCart} disabled={submitting}>
@@ -608,6 +623,138 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           )}
         </div>
       </section>
+
+      {checkoutOpen && (
+        <div className="checkout-modal-overlay" onClick={() => setCheckoutOpen(false)}>
+          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="checkout-modal-header">
+              <div className="checkout-steps">
+                <span className={`checkout-step ${checkoutStep === "review" ? "active" : "done"}`}>1. Review</span>
+                <span className={`checkout-step ${checkoutStep === "payment" ? "active" : ""}`}>2. Payment</span>
+              </div>
+              <button
+                type="button"
+                className="checkout-modal-close"
+                onClick={() => setCheckoutOpen(false)}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {checkoutStep === "review" && (
+              <div className="checkout-modal-body">
+                <h3>Bill summary</h3>
+                <ul className="checkout-bill-list">
+                  {cart.map((line) => (
+                    <li key={line.productVariantId}>
+                      <ProductThumb name={line.label} categoryName={null} size={32} />
+                      <span className="checkout-bill-name">{line.label}</span>
+                      <span className="muted">
+                        {line.quantity} × ₹{line.unitPrice}
+                      </span>
+                      <span>₹{(lineSubtotal(line) + lineTax(line)).toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="checkout-totals">
+                  <div>
+                    <span>Subtotal</span>
+                    <span>₹{cart.reduce((s, l) => s + lineSubtotal(l), 0).toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span>Discount</span>
+                    <span>₹{cart.reduce((s, l) => s + l.discountAmount, 0).toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span>Tax</span>
+                    <span>₹{cart.reduce((s, l) => s + lineTax(l), 0).toFixed(2)}</span>
+                  </div>
+                  <div className="checkout-total-grand">
+                    <span>Total</span>
+                    <span>₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setCheckoutStep("payment")}>
+                  Continue to Payment →
+                </button>
+              </div>
+            )}
+
+            {checkoutStep === "payment" && (
+              <div className="checkout-modal-body">
+                <h3>Select payment method</h3>
+                <div className="payment-method-tiles">
+                  {enabledPaymentMethods.map((method) => {
+                    const Icon = PAYMENT_METHOD_ICONS[method];
+                    return (
+                      <button
+                        key={method}
+                        type="button"
+                        className={`payment-method-tile ${paymentMethod === method ? "selected" : ""}`}
+                        onClick={() => setPaymentMethod(method)}
+                      >
+                        <Icon size={20} />
+                        {method === "upi" ? "UPI" : method.charAt(0).toUpperCase() + method.slice(1)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label>
+                  Amount received
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    placeholder={total.toFixed(2)}
+                  />
+                </label>
+                <div className="quick-amounts">
+                  {quickAmounts(total).map((amt) => (
+                    <button type="button" key={amt} onClick={() => setAmountPaid(String(amt))}>
+                      ₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="checkout-totals">
+                  <div>
+                    <span>Total</span>
+                    <span>₹{total.toFixed(2)}</span>
+                  </div>
+                  {(() => {
+                    const remainder = invoiceBalanceDue({
+                      lines: cart,
+                      amountPaid: amountPaid.trim() === "" ? 0 : Number(amountPaid),
+                    });
+                    const changeDue = remainder < 0;
+                    return (
+                      <div className="checkout-total-grand">
+                        <span>{changeDue ? "Change due" : "Balance due"}</span>
+                        <span>₹{Math.abs(remainder).toFixed(2)}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {error && <p className="error">{error}</p>}
+
+                <div className="checkout-modal-actions">
+                  <button type="button" onClick={() => setCheckoutStep("review")} disabled={submitting}>
+                    ← Back
+                  </button>
+                  <button type="button" onClick={() => void completeSale()} disabled={submitting}>
+                    {submitting ? "Working…" : "Complete Sale (F4)"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
