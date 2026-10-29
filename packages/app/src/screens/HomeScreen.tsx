@@ -1,5 +1,23 @@
 import { useState } from "react";
 import { hasPermission, type Business, type Employee } from "@auxo/core";
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  Boxes,
+  Users,
+  Receipt,
+  Undo2,
+  Lock,
+  Truck,
+  ShoppingBag,
+  BarChart3,
+  Percent,
+  Gift,
+  UserCog,
+  History,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { setSession } from "../appState.js";
 import AppShell, { type NavItem } from "../components/AppShell.js";
 import DashboardScreen from "./DashboardScreen.js";
@@ -67,22 +85,22 @@ export default function HomeScreen({
   const isSuperAdmin = currentEmployee.role === "super_admin";
 
   const navItems: NavItem[] = [
-    { key: "dashboard", label: "Dashboard", show: true },
-    { key: "pos", label: "POS", show: canBill },
-    { key: "products", label: "Products", show: canViewInventory },
-    { key: "inventory", label: "Inventory", show: canViewInventory },
-    { key: "customers", label: "Customers", show: canViewCustomers },
-    { key: "history", label: "Invoice history", show: canViewHistory },
-    { key: "returns", label: "Returns", show: canViewHistory },
-    { key: "dayClosing", label: "Day closing", show: canBill },
-    { key: "suppliers", label: "Suppliers", show: canViewPurchases },
-    { key: "purchases", label: "Purchases", show: canViewPurchases },
-    { key: "reports", label: "Reports", show: canViewReports },
-    { key: "taxReport", label: "Tax report", show: canViewReports },
-    { key: "loyalty", label: "Loyalty", show: canViewCustomers },
-    { key: "employees", label: "Employees", show: isSuperAdmin },
-    { key: "activityLog", label: "Activity log", show: isSuperAdmin },
-    { key: "settings", label: "Settings", show: isSuperAdmin },
+    { key: "dashboard", label: "Dashboard", show: true, icon: LayoutDashboard },
+    { key: "pos", label: "POS", show: canBill, icon: ShoppingCart },
+    { key: "products", label: "Products", show: canViewInventory, icon: Package },
+    { key: "inventory", label: "Inventory", show: canViewInventory, icon: Boxes },
+    { key: "customers", label: "Customers", show: canViewCustomers, icon: Users },
+    { key: "history", label: "Invoice history", show: canViewHistory, icon: Receipt },
+    { key: "returns", label: "Returns", show: canViewHistory, icon: Undo2 },
+    { key: "dayClosing", label: "Day closing", show: canBill, icon: Lock },
+    { key: "suppliers", label: "Suppliers", show: canViewPurchases, icon: Truck },
+    { key: "purchases", label: "Purchases", show: canViewPurchases, icon: ShoppingBag },
+    { key: "reports", label: "Reports", show: canViewReports, icon: BarChart3 },
+    { key: "taxReport", label: "Tax report", show: canViewReports, icon: Percent },
+    { key: "loyalty", label: "Loyalty", show: canViewCustomers, icon: Gift },
+    { key: "employees", label: "Employees", show: isSuperAdmin, icon: UserCog },
+    { key: "activityLog", label: "Activity log", show: isSuperAdmin, icon: History },
+    { key: "settings", label: "Settings", show: isSuperAdmin, icon: SettingsIcon },
   ];
 
   async function signOut() {
@@ -99,9 +117,24 @@ export default function HomeScreen({
       onNavigate={(key) => setSection(key as Section)}
       onSignOut={() => void signOut()}
     >
-      {section === "dashboard" && <DashboardScreen canViewFinancials={canViewReports || isSuperAdmin} />}
+      {section === "dashboard" && (
+        <DashboardScreen
+          canViewFinancials={canViewReports || isSuperAdmin}
+          canBill={canBill}
+          canEditInventory={canEditInventory}
+          canEditCustomers={canEditCustomers}
+          canEditPurchases={canEditPurchases}
+          canViewReports={canViewReports}
+          onNavigate={(key) => setSection(key as Section)}
+        />
+      )}
       {section === "pos" && canBill && (
-        <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
+        <BillingScreen
+          business={business}
+          currentEmployee={currentEmployee}
+          canVoid={canVoidBill}
+          onNavigate={(key) => setSection(key as Section)}
+        />
       )}
       {section === "products" && canViewInventory && (
         <ProductsScreen canEdit={canEditInventory} currentEmployee={currentEmployee} />

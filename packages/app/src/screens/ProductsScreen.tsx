@@ -14,6 +14,7 @@ import {
 import { getRepositories } from "../db/repositories.js";
 import { logActivity } from "../db/activityLog.js";
 import { getTaxSettings } from "../db/taxSettings.js";
+import ProductThumb from "../components/ProductThumb.js";
 
 interface ProductsScreenProps {
   canEdit: boolean;
@@ -134,7 +135,10 @@ export default function ProductsScreen({ canEdit, currentEmployee }: ProductsScr
                   <tr key={variant.id}>
                     {i === 0 && (
                       <td rowSpan={arr.length}>
-                        <strong>{product.name}</strong>
+                        <div className="product-cell">
+                          <ProductThumb name={product.name} categoryName={categoryName(product.categoryId)} size={32} />
+                          <strong>{product.name}</strong>
+                        </div>
                       </td>
                     )}
                     {i === 0 && <td rowSpan={arr.length}>{categoryName(product.categoryId)}</td>}
@@ -196,6 +200,22 @@ function AddCategoryForm({ onAdded }: { onAdded: () => void | Promise<void> }) {
   );
 }
 
+interface DraftVariant {
+  key: string;
+  name: string;
+  sku: string;
+  barcode: string;
+  mrp: string;
+  sellingPrice: string;
+  initialStock: string;
+}
+
+let draftVariantCounter = 0;
+function newDraftVariant(name = ""): DraftVariant {
+  draftVariantCounter += 1;
+  return { key: `draft-${draftVariantCounter}`, name, sku: "", barcode: "", mrp: "", sellingPrice: "", initialStock: "0" };
+}
+
 function AddProductForm({
   categories,
   currentEmployee,
@@ -208,12 +228,7 @@ function AddProductForm({
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [taxRatePercent, setTaxRatePercent] = useState("");
-  const [variantName, setVariantName] = useState("Default");
-  const [sku, setSku] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [mrp, setMrp] = useState("");
-  const [sellingPrice, setSellingPrice] = useState("");
-  const [initialStock, setInitialStock] = useState("0");
+  const [variantRows, setVariantRows] = useState<DraftVariant[]>([newDraftVariant("Default")]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -223,9 +238,31 @@ function AddProductForm({
     });
   }, []);
 
+  function updateRow(key: string, field: keyof DraftVariant, value: string) {
+    setVariantRows((prev) => prev.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
+  }
+
+  function addRow() {
+    setVariantRows((prev) => [...prev, newDraftVariant()]);
+  }
+
+  function removeRow(key: string) {
+    setVariantRows((prev) => (prev.length === 1 ? prev : prev.filter((row) => row.key !== key)));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    for (const row of variantRows) {
+      if (!row.name.trim()) {
+        setError("Every variant needs a name (e.g. a size or color).");
+        return;
+      }
+      if (row.mrp.trim() === "" || row.sellingPrice.trim() === "") {
+        setError(`"${row.name}": MRP and selling price are required.`);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const repos = getRepositories();
@@ -236,40 +273,37 @@ function AddProductForm({
       });
       await repos.products.save(product);
 
-      const variant = newProductVariant({
-        productId: product.id,
-        name: variantName,
-        sku: sku.trim() || null,
-        barcode: barcode.trim() || null,
-        mrp: Number(mrp),
-        sellingPrice: Number(sellingPrice),
-      });
-      await repos.productVariants.save(variant);
-
-      const initialQty = Number(initialStock);
-      if (initialQty !== 0) {
-        const movement = newStockMovement({
-          productVariantId: variant.id,
-          quantityDelta: initialQty,
-          reason: "initial_stock",
+      for (const row of variantRows) {
+        const variant = newProductVariant({
+          productId: product.id,
+          name: row.name,
+          sku: row.sku.trim() || null,
+          barcode: row.barcode.trim() || null,
+          mrp: Number(row.mrp),
+          sellingPrice: Number(row.sellingPrice),
         });
-        await repos.stockMovements.save(movement);
+        await repos.productVariants.save(variant);
+
+        const initialQty = Number(row.initialStock);
+        if (initialQty !== 0) {
+          const movement = newStockMovement({
+            productVariantId: variant.id,
+            quantityDelta: initialQty,
+            reason: "initial_stock",
+          });
+          await repos.stockMovements.save(movement);
+        }
       }
 
       setName("");
       setCategoryId("");
       setTaxRatePercent("");
-      setVariantName("Default");
-      setSku("");
-      setBarcode("");
-      setMrp("");
-      setSellingPrice("");
-      setInitialStock("0");
+      setVariantRows([newDraftVariant("Default")]);
       await onAdded();
       void logActivity({
         employeeId: currentEmployee.id,
         action: "product.created",
-        summary: `Added product "${product.name}" (${variant.name})`,
+        summary: `Added product "${product.name}" with ${variantRows.length} variant${variantRows.length === 1 ? "" : "s"}`,
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -279,7 +313,7 @@ function AddProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="add-product-form">
+    <form onSubmit={handleSubmit} className="add-product-form product-form-wide">
       <h3>Add product</h3>
       <label>
         Product name
@@ -300,37 +334,77 @@ function AddProductForm({
         Tax rate % (optional)
         <input value={taxRatePercent} onChange={(e) => setTaxRatePercent(e.target.value)} />
       </label>
-      <label>
-        Variant name
-        <input value={variantName} onChange={(e) => setVariantName(e.target.value)} required />
-      </label>
-      <label>
-        SKU (optional)
-        <input value={sku} onChange={(e) => setSku(e.target.value)} />
-      </label>
-      <label>
-        Barcode (optional)
-        <input value={barcode} onChange={(e) => setBarcode(e.target.value)} />
-      </label>
-      <label>
-        MRP
-        <input type="number" min="0" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} required />
-      </label>
-      <label>
-        Selling price
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={sellingPrice}
-          onChange={(e) => setSellingPrice(e.target.value)}
-          required
-        />
-      </label>
-      <label>
-        Initial stock
-        <input type="number" step="1" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} />
-      </label>
+
+      <h4>Variants (e.g. size, color)</h4>
+      <div className="table-scroll">
+      <table className="variant-matrix">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>SKU</th>
+            <th>Barcode</th>
+            <th>MRP</th>
+            <th>Selling price</th>
+            <th>Initial stock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {variantRows.map((row) => (
+            <tr key={row.key}>
+              <td>
+                <input
+                  placeholder="e.g. M / Blue"
+                  value={row.name}
+                  onChange={(e) => updateRow(row.key, "name", e.target.value)}
+                />
+              </td>
+              <td>
+                <input value={row.sku} onChange={(e) => updateRow(row.key, "sku", e.target.value)} />
+              </td>
+              <td>
+                <input value={row.barcode} onChange={(e) => updateRow(row.key, "barcode", e.target.value)} />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.mrp}
+                  onChange={(e) => updateRow(row.key, "mrp", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.sellingPrice}
+                  onChange={(e) => updateRow(row.key, "sellingPrice", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  step="1"
+                  value={row.initialStock}
+                  onChange={(e) => updateRow(row.key, "initialStock", e.target.value)}
+                />
+              </td>
+              <td>
+                <button type="button" onClick={() => removeRow(row.key)} disabled={variantRows.length === 1}>
+                  Remove
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      </div>
+      <button type="button" onClick={addRow} className="add-variant-row-button">
+        + Add Variant
+      </button>
+
       {error && <p className="error">{error}</p>}
       <button type="submit" disabled={submitting}>
         {submitting ? "Adding…" : "Add product"}

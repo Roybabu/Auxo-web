@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from "react";
 import type { Business, Employee } from "@auxo/core";
+import { Menu, LogOut, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   key: string;
   label: string;
   show: boolean;
+  icon: LucideIcon;
 }
 
 interface AppShellProps {
@@ -46,7 +48,7 @@ export default function AppShell({
         onClick={() => setMobileOpen((v) => !v)}
         aria-label="Toggle navigation"
       >
-        ☰
+        <Menu size={20} />
       </button>
 
       <aside className={`app-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
@@ -63,20 +65,25 @@ export default function AppShell({
         </div>
 
         <nav className="app-sidebar-nav" aria-label="Primary">
-          {visibleItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`sidebar-nav-item ${activeKey === item.key ? "active" : ""}`}
-              onClick={() => {
-                onNavigate(item.key);
-                setMobileOpen(false);
-              }}
-              aria-current={activeKey === item.key ? "page" : undefined}
-            >
-              {item.label}
-            </button>
-          ))}
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`sidebar-nav-item ${activeKey === item.key ? "active" : ""}`}
+                onClick={() => {
+                  onNavigate(item.key);
+                  setMobileOpen(false);
+                }}
+                aria-current={activeKey === item.key ? "page" : undefined}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon size={18} strokeWidth={2} />
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         <button
@@ -96,7 +103,8 @@ export default function AppShell({
             <span className="muted">
               {currentEmployee.name} · {currentEmployee.role === "super_admin" ? "Super Admin" : "Employee"}
             </span>
-            <button type="button" onClick={onSignOut}>
+            <button type="button" className="icon-button" onClick={onSignOut} aria-label="Sign out" title="Sign out">
+              <LogOut size={16} />
               Sign out
             </button>
           </div>

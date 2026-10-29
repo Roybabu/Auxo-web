@@ -3,9 +3,13 @@ import {
   DEFAULT_LOYALTY_SETTINGS,
   validateLoyaltyProgramSettings,
   type Business,
+  type Invoice,
   type LoyaltyProgramSettings,
   type PaymentMethod,
+  type Product,
+  type ProductVariant,
 } from "@auxo/core";
+import { User, Percent, Printer, CreditCard, Gift, Database, Info, type LucideIcon } from "lucide-react";
 import { setBusiness } from "../appState.js";
 import {
   DEFAULT_RECEIPT_SETTINGS,
@@ -20,6 +24,7 @@ import {
   setPaymentMethodSettings,
 } from "../db/paymentMethodSettings.js";
 import { getLoyaltySettings, setLoyaltySettings } from "../db/loyaltySettings.js";
+import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
 import BackupPanel from "./BackupPanel.js";
 import AndroidImportPanel from "./AndroidImportPanel.js";
 
@@ -29,48 +34,94 @@ interface SettingsScreenProps {
   onBusinessUpdated: () => void | Promise<void>;
 }
 
+type SettingsTab = "profile" | "tax" | "receipt" | "payment" | "loyalty" | "backup" | "about";
+
+const SETTINGS_TABS: { key: SettingsTab; label: string; icon: LucideIcon }[] = [
+  { key: "profile", label: "Shop Profile", icon: User },
+  { key: "tax", label: "Tax & Pricing", icon: Percent },
+  { key: "receipt", label: "Receipt & Printer", icon: Printer },
+  { key: "payment", label: "Payment Methods", icon: CreditCard },
+  { key: "loyalty", label: "Loyalty Program", icon: Gift },
+  { key: "backup", label: "Backup & Restore", icon: Database },
+  { key: "about", label: "About", icon: Info },
+];
+
 export default function SettingsScreen({ business, onRestored, onBusinessUpdated }: SettingsScreenProps) {
+  const [tab, setTab] = useState<SettingsTab>("profile");
+
   return (
-    <div className="settings-screen">
-      <section>
-        <h2>Shop profile</h2>
-        <BusinessProfileForm business={business} onUpdated={onBusinessUpdated} />
-      </section>
+    <div className="settings-layout">
+      <nav className="settings-subnav" aria-label="Settings sections">
+        {SETTINGS_TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            className={`settings-subnav-item ${tab === key ? "active" : ""}`}
+            onClick={() => setTab(key)}
+            aria-current={tab === key ? "page" : undefined}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
 
-      <section>
-        <h2>Tax</h2>
-        <TaxSettingsPanel />
-      </section>
+      <div className="settings-panel">
+        {tab === "profile" && (
+          <section>
+            <h2>Shop profile</h2>
+            <BusinessProfileForm business={business} onUpdated={onBusinessUpdated} />
+          </section>
+        )}
 
-      <section>
-        <h2>Receipt &amp; printer</h2>
-        <ReceiptSettingsPanel />
-      </section>
+        {tab === "tax" && (
+          <section>
+            <h2>Tax</h2>
+            <TaxSettingsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Payment methods</h2>
-        <PaymentMethodsPanel />
-      </section>
+        {tab === "receipt" && (
+          <section>
+            <h2>Receipt &amp; printer</h2>
+            <ReceiptSettingsPanel business={business} />
+          </section>
+        )}
 
-      <section>
-        <h2>Loyalty program</h2>
-        <LoyaltySettingsPanel />
-      </section>
+        {tab === "payment" && (
+          <section>
+            <h2>Payment methods</h2>
+            <PaymentMethodsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Backup &amp; restore</h2>
-        <BackupPanel onRestored={onRestored} />
-      </section>
+        {tab === "loyalty" && (
+          <section>
+            <h2>Loyalty program</h2>
+            <LoyaltySettingsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Import from Android app</h2>
-        <AndroidImportPanel />
-      </section>
+        {tab === "backup" && (
+          <>
+            <section>
+              <h2>Backup &amp; restore</h2>
+              <BackupPanel onRestored={onRestored} />
+            </section>
+            <section>
+              <h2>Import from Android app</h2>
+              <AndroidImportPanel />
+            </section>
+          </>
+        )}
 
-      <section>
-        <h2>About Auxo</h2>
-        <p className="muted">Auxo Web — offline-first retail POS. Built to grow.</p>
-      </section>
+        {tab === "about" && (
+          <section>
+            <h2>About Auxo</h2>
+            <p className="muted">Auxo Web — offline-first retail POS. Built to grow.</p>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
@@ -187,7 +238,52 @@ function TaxSettingsPanel() {
   );
 }
 
-function ReceiptSettingsPanel() {
+const SAMPLE_PRODUCT: Product = {
+  id: "preview-product",
+  categoryId: null,
+  name: "Sample Item",
+  taxRatePercent: 5,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  deletedAt: null,
+};
+
+const SAMPLE_VARIANT: ProductVariant = {
+  id: "preview-variant",
+  productId: "preview-product",
+  name: "Default",
+  sku: null,
+  barcode: null,
+  mrp: 120,
+  sellingPrice: 100,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  deletedAt: null,
+};
+
+function sampleInvoice(): Invoice {
+  const ts = new Date().toISOString();
+  return {
+    id: "preview-invoice",
+    invoiceNumber: "PREVIEW-000001",
+    customerId: null,
+    employeeId: null,
+    lines: [
+      { id: "preview-line-1", productVariantId: "preview-variant", quantity: 2, unitPrice: 100, discountAmount: 0, taxRatePercent: 5 },
+    ],
+    status: "completed",
+    paymentStatus: "paid",
+    tableNumber: null,
+    amountPaid: 210,
+    paymentMethod: "cash",
+    createdDeviceId: "preview",
+    createdAt: ts,
+    updatedAt: ts,
+    deletedAt: null,
+  };
+}
+
+function ReceiptSettingsPanel({ business }: { business: Business }) {
   const [settings, setSettingsState] = useState<ReceiptSettings>(DEFAULT_RECEIPT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -214,30 +310,84 @@ function ReceiptSettingsPanel() {
 
   if (loading) return <p className="muted">Loading…</p>;
 
+  const previewHtml = buildInvoiceHtmlDocument({
+    invoice: sampleInvoice(),
+    business,
+    customer: null,
+    variants: [SAMPLE_VARIANT],
+    products: [SAMPLE_PRODUCT],
+    receiptSettings: settings,
+    autoPrint: false,
+  });
+
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="add-product-form">
-      <label>
-        Paper width
-        <select
-          value={settings.paperWidthMm}
-          onChange={(e) => setSettingsState({ ...settings, paperWidthMm: Number(e.target.value) as 58 | 80 })}
-        >
-          <option value={80}>80mm</option>
-          <option value={58}>58mm</option>
-        </select>
-      </label>
-      <label>
-        Receipt footer text
-        <input
-          value={settings.footerText}
-          onChange={(e) => setSettingsState({ ...settings, footerText: e.target.value })}
-        />
-      </label>
-      {saved && <p className="success">Saved.</p>}
-      <button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Save"}
-      </button>
-    </form>
+    <div className="receipt-settings-layout">
+      <form onSubmit={(e) => void handleSubmit(e)} className="add-product-form">
+        <label>
+          Paper width
+          <select
+            value={settings.paperWidthMm}
+            onChange={(e) =>
+              setSettingsState({ ...settings, paperWidthMm: Number(e.target.value) as 56 | 76 | 80 })
+            }
+          >
+            <option value={56}>56mm</option>
+            <option value={76}>76mm</option>
+            <option value={80}>80mm</option>
+          </select>
+        </label>
+        <label>
+          Receipt footer text
+          <input
+            value={settings.footerText}
+            onChange={(e) => setSettingsState({ ...settings, footerText: e.target.value })}
+          />
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showLogo}
+            onChange={(e) => setSettingsState({ ...settings, showLogo: e.target.checked })}
+          />
+          Show logo
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showShopDetails}
+            onChange={(e) => setSettingsState({ ...settings, showShopDetails: e.target.checked })}
+          />
+          Show shop details (tagline, GSTIN/FSSAI)
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showTaxDetails}
+            onChange={(e) => setSettingsState({ ...settings, showTaxDetails: e.target.checked })}
+          />
+          Show tax details
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showBarcode}
+            onChange={(e) => setSettingsState({ ...settings, showBarcode: e.target.checked })}
+          />
+          Show barcode strip
+        </label>
+        {saved && <p className="success">Saved.</p>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Save"}
+        </button>
+      </form>
+
+      <div className="receipt-preview">
+        <p className="muted">Preview</p>
+        <div className="receipt-preview-frame">
+          <iframe title="Receipt preview" srcDoc={previewHtml} />
+        </div>
+      </div>
+    </div>
   );
 }
 

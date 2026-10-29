@@ -12,13 +12,21 @@ import {
 } from "@auxo/core";
 
 export interface ReceiptPrintSettings {
-  paperWidthMm: 58 | 80;
+  paperWidthMm: 56 | 76 | 80;
   footerText: string;
+  showLogo: boolean;
+  showShopDetails: boolean;
+  showTaxDetails: boolean;
+  showBarcode: boolean;
 }
 
 const DEFAULT_RECEIPT_PRINT_SETTINGS: ReceiptPrintSettings = {
   paperWidthMm: 80,
   footerText: "We'd love your feedback — thank you for shopping with us!",
+  showLogo: true,
+  showShopDetails: true,
+  showTaxDetails: true,
+  showBarcode: false,
 };
 
 export interface InvoicePrintParams {
@@ -28,6 +36,8 @@ export interface InvoicePrintParams {
   variants: readonly ProductVariant[];
   products: readonly Product[];
   receiptSettings?: ReceiptPrintSettings;
+  /** Set false for an on-screen preview that shouldn't pop the browser's print dialog. Defaults true. */
+  autoPrint?: boolean;
 }
 
 function escapeHtml(value: string): string {
@@ -36,6 +46,16 @@ function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** A deterministic, decorative bar pattern derived from the invoice number — not a scannable barcode. */
+function barcodeBars(code: string): string {
+  let bars = "";
+  for (let i = 0; i < code.length; i++) {
+    const w = (code.charCodeAt(i) % 3) + 1;
+    bars += `<span style="width:${w}px;"></span>`;
+  }
+  return bars;
 }
 
 /**
@@ -50,7 +70,8 @@ function escapeHtml(value: string): string {
 export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
   const { invoice, business, customer, variants, products } = params;
   const receiptSettings = params.receiptSettings ?? DEFAULT_RECEIPT_PRINT_SETTINGS;
-  const maxWidthPx = receiptSettings.paperWidthMm === 58 ? 260 : 400;
+  const autoPrint = params.autoPrint ?? true;
+  const maxWidthPx = receiptSettings.paperWidthMm === 56 ? 230 : receiptSettings.paperWidthMm === 76 ? 340 : 400;
 
   const variantById = new Map(variants.map((v) => [v.id, v]));
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -70,12 +91,12 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
           <td class="num">${line.quantity}</td>
           <td class="num">₹${line.unitPrice.toFixed(2)}</td>
           <td class="num">₹${line.discountAmount.toFixed(2)}</td>
-          <td class="num">${line.taxRatePercent}%</td>
+          ${receiptSettings.showTaxDetails ? `<td class="num">${line.taxRatePercent}%</td>` : ""}
           <td class="num">₹${(subtotal + tax).toFixed(2)}</td>
         </tr>
         ${
           savedOnMrp > 0
-            ? `<tr class="saved-row"><td colspan="6">You saved ₹${savedOnMrp.toFixed(2)} off MRP on this item</td></tr>`
+            ? `<tr class="saved-row"><td colspan="${receiptSettings.showTaxDetails ? 6 : 5}">You saved ₹${savedOnMrp.toFixed(2)} off MRP on this item</td></tr>`
             : ""
         }
       `;
@@ -102,7 +123,9 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
   :root { --emerald: #167d55; }
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; margin: 0; padding: 2rem; max-width: ${maxWidthPx}px; }
-  h1 { color: var(--emerald); margin: 0 0 0.25rem; }
+  .brand-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+  .brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--emerald); color: white; font-weight: 800; font-size: 0.95rem; flex-shrink: 0; }
+  h1 { color: var(--emerald); margin: 0; font-size: 1.4rem; }
   .tagline { color: #0f5c3e; margin: 0 0 0.25rem; font-size: 0.9rem; }
   .biz-reg { color: #555; margin: 0 0 0.25rem; font-size: 0.8rem; }
   .meta { display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; color: #444; }
@@ -115,14 +138,20 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
   .totals .grand { font-weight: 700; font-size: 1.1rem; border-top: 1px solid #ccc; margin-top: 0.3rem; padding-top: 0.5rem; }
   .status { margin-top: 0.5rem; font-weight: 600; }
   .feedback { margin-top: 2rem; text-align: center; color: #555; font-size: 0.85rem; }
+  .barcode { display: flex; justify-content: center; align-items: flex-end; gap: 1px; height: 36px; margin-top: 1.5rem; }
+  .barcode span { display: block; height: 100%; background: #1a1a1a; }
+  .barcode-number { text-align: center; font-size: 0.75rem; letter-spacing: 0.1em; margin-top: 0.25rem; color: #444; }
   @media print { body { padding: 0; } }
 </style>
 </head>
 <body>
-  <h1>${escapeHtml(business.name)}</h1>
-  <p class="tagline">Built to grow.</p>
-  ${business.gstin ? `<p class="biz-reg">GSTIN: ${escapeHtml(business.gstin)}</p>` : ""}
-  ${business.fssaiNumber ? `<p class="biz-reg">FSSAI: ${escapeHtml(business.fssaiNumber)}</p>` : ""}
+  <div class="brand-row">
+    ${receiptSettings.showLogo ? `<span class="brand-mark">A</span>` : ""}
+    <h1>${escapeHtml(business.name)}</h1>
+  </div>
+  ${receiptSettings.showShopDetails ? `<p class="tagline">Built to grow.</p>` : ""}
+  ${receiptSettings.showShopDetails && business.gstin ? `<p class="biz-reg">GSTIN: ${escapeHtml(business.gstin)}</p>` : ""}
+  ${receiptSettings.showShopDetails && business.fssaiNumber ? `<p class="biz-reg">FSSAI: ${escapeHtml(business.fssaiNumber)}</p>` : ""}
   <div class="meta">
     <div>
       <div><strong>Invoice:</strong> ${escapeHtml(invoice.invoiceNumber)}</div>
@@ -137,7 +166,7 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
 
   <table>
     <thead>
-      <tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Discount</th><th class="num">Tax</th><th class="num">Amount</th></tr>
+      <tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Discount</th>${receiptSettings.showTaxDetails ? `<th class="num">Tax</th>` : ""}<th class="num">Amount</th></tr>
     </thead>
     <tbody>
       ${rows}
@@ -153,7 +182,13 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
 
   <p class="feedback">${escapeHtml(receiptSettings.footerText)}</p>
 
-  <script>window.onload = () => window.print();</script>
+  ${
+    receiptSettings.showBarcode
+      ? `<div class="barcode">${barcodeBars(invoice.invoiceNumber)}</div><p class="barcode-number">${escapeHtml(invoice.invoiceNumber)}</p>`
+      : ""
+  }
+
+  ${autoPrint ? `<script>window.onload = () => window.print();</script>` : ""}
 </body>
 </html>`;
 }
