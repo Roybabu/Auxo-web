@@ -3,8 +3,11 @@ import {
   DEFAULT_LOYALTY_SETTINGS,
   validateLoyaltyProgramSettings,
   type Business,
+  type Invoice,
   type LoyaltyProgramSettings,
   type PaymentMethod,
+  type Product,
+  type ProductVariant,
 } from "@auxo/core";
 import { User, Percent, Printer, CreditCard, Gift, Database, Info, type LucideIcon } from "lucide-react";
 import { setBusiness } from "../appState.js";
@@ -21,6 +24,7 @@ import {
   setPaymentMethodSettings,
 } from "../db/paymentMethodSettings.js";
 import { getLoyaltySettings, setLoyaltySettings } from "../db/loyaltySettings.js";
+import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
 import BackupPanel from "./BackupPanel.js";
 import AndroidImportPanel from "./AndroidImportPanel.js";
 
@@ -80,7 +84,7 @@ export default function SettingsScreen({ business, onRestored, onBusinessUpdated
         {tab === "receipt" && (
           <section>
             <h2>Receipt &amp; printer</h2>
-            <ReceiptSettingsPanel />
+            <ReceiptSettingsPanel business={business} />
           </section>
         )}
 
@@ -234,7 +238,52 @@ function TaxSettingsPanel() {
   );
 }
 
-function ReceiptSettingsPanel() {
+const SAMPLE_PRODUCT: Product = {
+  id: "preview-product",
+  categoryId: null,
+  name: "Sample Item",
+  taxRatePercent: 5,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  deletedAt: null,
+};
+
+const SAMPLE_VARIANT: ProductVariant = {
+  id: "preview-variant",
+  productId: "preview-product",
+  name: "Default",
+  sku: null,
+  barcode: null,
+  mrp: 120,
+  sellingPrice: 100,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  deletedAt: null,
+};
+
+function sampleInvoice(): Invoice {
+  const ts = new Date().toISOString();
+  return {
+    id: "preview-invoice",
+    invoiceNumber: "PREVIEW-000001",
+    customerId: null,
+    employeeId: null,
+    lines: [
+      { id: "preview-line-1", productVariantId: "preview-variant", quantity: 2, unitPrice: 100, discountAmount: 0, taxRatePercent: 5 },
+    ],
+    status: "completed",
+    paymentStatus: "paid",
+    tableNumber: null,
+    amountPaid: 210,
+    paymentMethod: "cash",
+    createdDeviceId: "preview",
+    createdAt: ts,
+    updatedAt: ts,
+    deletedAt: null,
+  };
+}
+
+function ReceiptSettingsPanel({ business }: { business: Business }) {
   const [settings, setSettingsState] = useState<ReceiptSettings>(DEFAULT_RECEIPT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -261,30 +310,84 @@ function ReceiptSettingsPanel() {
 
   if (loading) return <p className="muted">Loading…</p>;
 
+  const previewHtml = buildInvoiceHtmlDocument({
+    invoice: sampleInvoice(),
+    business,
+    customer: null,
+    variants: [SAMPLE_VARIANT],
+    products: [SAMPLE_PRODUCT],
+    receiptSettings: settings,
+    autoPrint: false,
+  });
+
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="add-product-form">
-      <label>
-        Paper width
-        <select
-          value={settings.paperWidthMm}
-          onChange={(e) => setSettingsState({ ...settings, paperWidthMm: Number(e.target.value) as 58 | 80 })}
-        >
-          <option value={80}>80mm</option>
-          <option value={58}>58mm</option>
-        </select>
-      </label>
-      <label>
-        Receipt footer text
-        <input
-          value={settings.footerText}
-          onChange={(e) => setSettingsState({ ...settings, footerText: e.target.value })}
-        />
-      </label>
-      {saved && <p className="success">Saved.</p>}
-      <button type="submit" disabled={submitting}>
-        {submitting ? "Saving…" : "Save"}
-      </button>
-    </form>
+    <div className="receipt-settings-layout">
+      <form onSubmit={(e) => void handleSubmit(e)} className="add-product-form">
+        <label>
+          Paper width
+          <select
+            value={settings.paperWidthMm}
+            onChange={(e) =>
+              setSettingsState({ ...settings, paperWidthMm: Number(e.target.value) as 56 | 76 | 80 })
+            }
+          >
+            <option value={56}>56mm</option>
+            <option value={76}>76mm</option>
+            <option value={80}>80mm</option>
+          </select>
+        </label>
+        <label>
+          Receipt footer text
+          <input
+            value={settings.footerText}
+            onChange={(e) => setSettingsState({ ...settings, footerText: e.target.value })}
+          />
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showLogo}
+            onChange={(e) => setSettingsState({ ...settings, showLogo: e.target.checked })}
+          />
+          Show logo
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showShopDetails}
+            onChange={(e) => setSettingsState({ ...settings, showShopDetails: e.target.checked })}
+          />
+          Show shop details (tagline, GSTIN/FSSAI)
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showTaxDetails}
+            onChange={(e) => setSettingsState({ ...settings, showTaxDetails: e.target.checked })}
+          />
+          Show tax details
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showBarcode}
+            onChange={(e) => setSettingsState({ ...settings, showBarcode: e.target.checked })}
+          />
+          Show barcode strip
+        </label>
+        {saved && <p className="success">Saved.</p>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : "Save"}
+        </button>
+      </form>
+
+      <div className="receipt-preview">
+        <p className="muted">Preview</p>
+        <div className="receipt-preview-frame">
+          <iframe title="Receipt preview" srcDoc={previewHtml} />
+        </div>
+      </div>
+    </div>
   );
 }
 
