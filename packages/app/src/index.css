@@ -1090,6 +1090,9 @@ button:active:not(:disabled) {
 }
 
 .sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   background: none;
   color: #d1fae5;
   text-align: left;
@@ -1098,7 +1101,19 @@ button:active:not(:disabled) {
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.sidebar-nav-item svg {
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item span {
+  overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sidebar-collapsed .sidebar-nav-item {
+  justify-content: center;
 }
 
 .sidebar-nav-item:hover {
@@ -1135,6 +1150,14 @@ button:active:not(:disabled) {
   height: 40px;
   padding: 0;
   font-size: 1.1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .app-shell-main {
@@ -1172,7 +1195,7 @@ button:active:not(:disabled) {
 
 @media (max-width: 860px) {
   .mobile-nav-toggle {
-    display: block;
+    display: flex;
   }
 
   .app-sidebar {
