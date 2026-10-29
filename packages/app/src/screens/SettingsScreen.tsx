@@ -6,6 +6,7 @@ import {
   type LoyaltyProgramSettings,
   type PaymentMethod,
 } from "@auxo/core";
+import { User, Percent, Printer, CreditCard, Gift, Database, Info, type LucideIcon } from "lucide-react";
 import { setBusiness } from "../appState.js";
 import {
   DEFAULT_RECEIPT_SETTINGS,
@@ -29,48 +30,94 @@ interface SettingsScreenProps {
   onBusinessUpdated: () => void | Promise<void>;
 }
 
+type SettingsTab = "profile" | "tax" | "receipt" | "payment" | "loyalty" | "backup" | "about";
+
+const SETTINGS_TABS: { key: SettingsTab; label: string; icon: LucideIcon }[] = [
+  { key: "profile", label: "Shop Profile", icon: User },
+  { key: "tax", label: "Tax & Pricing", icon: Percent },
+  { key: "receipt", label: "Receipt & Printer", icon: Printer },
+  { key: "payment", label: "Payment Methods", icon: CreditCard },
+  { key: "loyalty", label: "Loyalty Program", icon: Gift },
+  { key: "backup", label: "Backup & Restore", icon: Database },
+  { key: "about", label: "About", icon: Info },
+];
+
 export default function SettingsScreen({ business, onRestored, onBusinessUpdated }: SettingsScreenProps) {
+  const [tab, setTab] = useState<SettingsTab>("profile");
+
   return (
-    <div className="settings-screen">
-      <section>
-        <h2>Shop profile</h2>
-        <BusinessProfileForm business={business} onUpdated={onBusinessUpdated} />
-      </section>
+    <div className="settings-layout">
+      <nav className="settings-subnav" aria-label="Settings sections">
+        {SETTINGS_TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            className={`settings-subnav-item ${tab === key ? "active" : ""}`}
+            onClick={() => setTab(key)}
+            aria-current={tab === key ? "page" : undefined}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
 
-      <section>
-        <h2>Tax</h2>
-        <TaxSettingsPanel />
-      </section>
+      <div className="settings-panel">
+        {tab === "profile" && (
+          <section>
+            <h2>Shop profile</h2>
+            <BusinessProfileForm business={business} onUpdated={onBusinessUpdated} />
+          </section>
+        )}
 
-      <section>
-        <h2>Receipt &amp; printer</h2>
-        <ReceiptSettingsPanel />
-      </section>
+        {tab === "tax" && (
+          <section>
+            <h2>Tax</h2>
+            <TaxSettingsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Payment methods</h2>
-        <PaymentMethodsPanel />
-      </section>
+        {tab === "receipt" && (
+          <section>
+            <h2>Receipt &amp; printer</h2>
+            <ReceiptSettingsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Loyalty program</h2>
-        <LoyaltySettingsPanel />
-      </section>
+        {tab === "payment" && (
+          <section>
+            <h2>Payment methods</h2>
+            <PaymentMethodsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Backup &amp; restore</h2>
-        <BackupPanel onRestored={onRestored} />
-      </section>
+        {tab === "loyalty" && (
+          <section>
+            <h2>Loyalty program</h2>
+            <LoyaltySettingsPanel />
+          </section>
+        )}
 
-      <section>
-        <h2>Import from Android app</h2>
-        <AndroidImportPanel />
-      </section>
+        {tab === "backup" && (
+          <>
+            <section>
+              <h2>Backup &amp; restore</h2>
+              <BackupPanel onRestored={onRestored} />
+            </section>
+            <section>
+              <h2>Import from Android app</h2>
+              <AndroidImportPanel />
+            </section>
+          </>
+        )}
 
-      <section>
-        <h2>About Auxo</h2>
-        <p className="muted">Auxo Web — offline-first retail POS. Built to grow.</p>
-      </section>
+        {tab === "about" && (
+          <section>
+            <h2>About Auxo</h2>
+            <p className="muted">Auxo Web — offline-first retail POS. Built to grow.</p>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

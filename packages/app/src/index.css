@@ -378,6 +378,72 @@ button:active:not(:disabled) {
   margin: 0;
 }
 
+.settings-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.settings-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 0.5rem;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.settings-subnav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  box-shadow: none;
+}
+
+.settings-subnav-item:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.settings-subnav-item.active {
+  background: var(--emerald-pale);
+  color: var(--emerald-dark);
+  font-weight: 600;
+}
+
+.settings-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 760px) {
+  .settings-layout {
+    flex-direction: column;
+  }
+
+  .settings-subnav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    position: static;
+  }
+}
+
 .category-list,
 .product-list {
   list-style: none;
