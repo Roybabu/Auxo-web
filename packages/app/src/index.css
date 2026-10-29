@@ -608,6 +608,21 @@ button:active:not(:disabled) {
   transform: scale(0.98);
 }
 
+.product-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--emerald-deep);
+  flex-shrink: 0;
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .pos-product-name {
   font-size: 0.85rem;
   font-weight: 600;

@@ -27,6 +27,7 @@ import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
 import { logActivity } from "../db/activityLog.js";
+import ProductThumb from "../components/ProductThumb.js";
 import { getReceiptSettings } from "../db/receiptSettings.js";
 import { getPaymentMethodSettings } from "../db/paymentMethodSettings.js";
 import { getLoyaltySettings } from "../db/loyaltySettings.js";
@@ -114,6 +115,12 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
 
   function variantLabel(variant: ProductVariant): string {
     return `${productName(variant.productId)} — ${variant.name}`;
+  }
+
+  function categoryNameFor(variant: ProductVariant): string | null {
+    const product = productOf(variant);
+    if (!product?.categoryId) return null;
+    return categories.find((c) => c.id === product.categoryId)?.name ?? null;
   }
 
   const filteredVariants = useMemo(() => {
@@ -447,6 +454,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
             const stockClass = qty <= 0 ? "out" : qty <= 5 ? "low" : "ok";
             return (
               <button type="button" key={variant.id} className="pos-product-card" onClick={() => addToCart(variant)}>
+                <ProductThumb name={productName(variant.productId)} categoryName={categoryNameFor(variant)} size={40} />
                 <span className="pos-product-name">{variantLabel(variant)}</span>
                 <span className="pos-product-price">₹{variant.sellingPrice}</span>
                 <span className={`pos-stock-badge ${stockClass}`}>

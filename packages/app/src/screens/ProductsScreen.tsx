@@ -14,6 +14,7 @@ import {
 import { getRepositories } from "../db/repositories.js";
 import { logActivity } from "../db/activityLog.js";
 import { getTaxSettings } from "../db/taxSettings.js";
+import ProductThumb from "../components/ProductThumb.js";
 
 interface ProductsScreenProps {
   canEdit: boolean;
@@ -134,7 +135,10 @@ export default function ProductsScreen({ canEdit, currentEmployee }: ProductsScr
                   <tr key={variant.id}>
                     {i === 0 && (
                       <td rowSpan={arr.length}>
-                        <strong>{product.name}</strong>
+                        <div className="product-cell">
+                          <ProductThumb name={product.name} categoryName={categoryName(product.categoryId)} size={32} />
+                          <strong>{product.name}</strong>
+                        </div>
                       </td>
                     )}
                     {i === 0 && <td rowSpan={arr.length}>{categoryName(product.categoryId)}</td>}

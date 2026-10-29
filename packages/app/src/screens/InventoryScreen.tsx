@@ -10,6 +10,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { logActivity } from "../db/activityLog.js";
+import ProductThumb from "../components/ProductThumb.js";
 
 interface InventoryScreenProps {
   canEdit: boolean;
@@ -146,11 +147,17 @@ export default function InventoryScreen({ canEdit, currentEmployee }: InventoryS
               const qty = stock.get(variant.id) ?? 0;
               const product = products.find((p) => p.id === variant.productId);
               const badge = qty <= 0 ? "out" : qty <= LOW_STOCK_THRESHOLD ? "low" : "ok";
+              const categoryLabel = categoryName(product?.categoryId ?? null);
               return (
                 <tr key={variant.id}>
-                  <td>{productName(variant.productId)}</td>
+                  <td>
+                    <div className="product-cell">
+                      <ProductThumb name={productName(variant.productId)} categoryName={categoryLabel} size={32} />
+                      {productName(variant.productId)}
+                    </div>
+                  </td>
                   <td className="muted">{variant.name}</td>
-                  <td>{categoryName(product?.categoryId ?? null)}</td>
+                  <td>{categoryLabel}</td>
                   <td>
                     <span className={`pos-stock-badge ${badge}`}>{qty}</span>
                   </td>
