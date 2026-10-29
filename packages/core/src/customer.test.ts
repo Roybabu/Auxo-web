@@ -39,4 +39,8 @@ describe("newCustomer", () => {
     expect(customer.phone).toBe("9876543210");
     expect(customer.creditLimit).toBe(500);
   });
+
+  it("starts with zero loyalty points", () => {
+    expect(newCustomer({ name: "Asha" }).loyaltyPoints).toBe(0);
+  });
 });

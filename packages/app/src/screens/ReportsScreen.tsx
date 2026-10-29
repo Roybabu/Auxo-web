@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  invoiceTotal,
   inventoryValue,
   salesSummary,
   stockByVariant,
@@ -81,21 +82,56 @@ export default function ReportsScreen() {
     return customers.find((c) => c.id === customerId)?.name ?? "Unknown customer";
   }
 
+  function csvEscape(value: string | number): string {
+    const s = String(value);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function exportCsv() {
+    const header = ["Invoice", "Date", "Customer", "Total", "Tax", "Discount", "Payment status"];
+    const rows = completedInRange.map((invoice) => {
+      const tax = invoice.lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice - line.discountAmount) * (line.taxRatePercent / 100), 0);
+      const discount = invoice.lines.reduce((sum, line) => sum + line.discountAmount, 0);
+      return [
+        invoice.invoiceNumber,
+        new Date(invoice.createdAt).toLocaleString(),
+        invoice.customerId ? customerName(invoice.customerId) : "Walk-in",
+        invoiceTotal({ lines: invoice.lines }).toFixed(2),
+        tax.toFixed(2),
+        discount.toFixed(2),
+        invoice.paymentStatus,
+      ];
+    });
+    const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sales-report-${range}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  }
+
   if (loading) return <p className="muted">Loading reports…</p>;
 
   return (
     <div className="reports-screen">
-      <div className="range-picker">
-        {(["today", "week", "month", "all"] as RangeOption[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={range === option ? "tab active" : "tab"}
-            onClick={() => setRange(option)}
-          >
-            {option === "today" ? "Today" : option === "week" ? "Last 7 days" : option === "month" ? "This month" : "All time"}
-          </button>
-        ))}
+      <div className="reports-toolbar">
+        <div className="range-picker">
+          {(["today", "week", "month", "all"] as RangeOption[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={range === option ? "tab active" : "tab"}
+              onClick={() => setRange(option)}
+            >
+              {option === "today" ? "Today" : option === "week" ? "Last 7 days" : option === "month" ? "This month" : "All time"}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={exportCsv} disabled={completedInRange.length === 0}>
+          Export CSV
+        </button>
       </div>
 
       <div className="report-cards">

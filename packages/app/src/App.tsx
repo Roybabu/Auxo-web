@@ -48,8 +48,12 @@ export default function App() {
 
   if (phase.kind === "loading") {
     return (
-      <main className="centered-screen">
+      <main className="centered-screen splash-screen">
+        <span className="brand-mark brand-mark-lg splash-pulse" aria-hidden="true">
+          A
+        </span>
         <h1>Auxo</h1>
+        <p className="tagline">Built to grow.</p>
         <p className="muted">Starting up…</p>
       </main>
     );
@@ -57,9 +61,15 @@ export default function App() {
 
   if (phase.kind === "error") {
     return (
-      <main className="centered-screen">
+      <main className="centered-screen splash-screen">
+        <span className="brand-mark brand-mark-lg" aria-hidden="true">
+          A
+        </span>
         <h1>Auxo</h1>
-        <p className="muted">Something went wrong starting the local database: {phase.message}</p>
+        <p className="error">Something went wrong starting the local database: {phase.message}</p>
+        <button type="button" onClick={() => window.location.reload()}>
+          Retry
+        </button>
       </main>
     );
   }
@@ -95,6 +105,7 @@ export default function App() {
       currentEmployee={phase.employee}
       onSignedOut={resolvePhase}
       onRestored={resolvePhase}
+      onBusinessUpdated={resolvePhase}
     />
   );
 }

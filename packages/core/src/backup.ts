@@ -3,6 +3,11 @@ import type { Customer } from "./customer.js";
 import type { Employee } from "./permissions.js";
 import type { StockMovement } from "./stock.js";
 import type { Invoice } from "./invoice.js";
+import type { Supplier } from "./supplier.js";
+import type { Purchase } from "./purchase.js";
+import type { Return } from "./return.js";
+import type { DayClosing } from "./dayClosing.js";
+import type { ActivityLog } from "./activityLog.js";
 
 /**
  * The neutral JSON export/import format. "Neutral" means: no SQLite
@@ -21,6 +26,16 @@ export interface AuxoBackupData {
   employees: Employee[];
   stockMovements: StockMovement[];
   invoices: Invoice[];
+  /**
+   * Added after format v1 shipped — optional so backups made before
+   * suppliers/purchases existed still parse. Readers should default a
+   * missing array to empty rather than treat it as malformed.
+   */
+  suppliers?: Supplier[];
+  purchases?: Purchase[];
+  returns?: Return[];
+  dayClosings?: DayClosing[];
+  activityLogs?: ActivityLog[];
   /** Shop settings and other small key/value state (business name, GST, FSSAI no., etc). */
   settings: Record<string, string>;
 }
@@ -75,6 +90,11 @@ export function emptyBackupData(): AuxoBackupData {
     employees: [],
     stockMovements: [],
     invoices: [],
+    suppliers: [],
+    purchases: [],
+    returns: [],
+    dayClosings: [],
+    activityLogs: [],
     settings: {},
   };
 }

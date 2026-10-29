@@ -17,7 +17,9 @@ export type Permission =
   | "customers.edit"
   | "reports.view"
   | "settings.edit"
-  | "employees.manage";
+  | "employees.manage"
+  | "purchases.view"
+  | "purchases.edit";
 
 export const ALL_PERMISSIONS: readonly Permission[] = [
   "billing.create",
@@ -29,6 +31,8 @@ export const ALL_PERMISSIONS: readonly Permission[] = [
   "reports.view",
   "settings.edit",
   "employees.manage",
+  "purchases.view",
+  "purchases.edit",
 ];
 
 export interface Employee extends Entity {

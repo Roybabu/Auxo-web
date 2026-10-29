@@ -6,6 +6,11 @@ import type {
   Employee,
   StockMovement,
   Invoice,
+  Supplier,
+  Purchase,
+  Return,
+  DayClosing,
+  ActivityLog,
 } from "@auxo/core";
 import { SqliteRepository } from "./sqliteRepository.js";
 import { SqliteKeyValueStore } from "./sqliteKv.js";
@@ -23,6 +28,11 @@ export interface Repositories {
   employees: SqliteRepository<Employee>;
   stockMovements: SqliteRepository<StockMovement>;
   invoices: SqliteRepository<Invoice>;
+  suppliers: SqliteRepository<Supplier>;
+  purchases: SqliteRepository<Purchase>;
+  returns: SqliteRepository<Return>;
+  dayClosings: SqliteRepository<DayClosing>;
+  activityLogs: SqliteRepository<ActivityLog>;
   settings: SqliteKeyValueStore;
 }
 
@@ -37,6 +47,11 @@ export function getRepositories(): Repositories {
     employees: new SqliteRepository<Employee>("employee"),
     stockMovements: new SqliteRepository<StockMovement>("stock_movement"),
     invoices: new SqliteRepository<Invoice>("invoice"),
+    suppliers: new SqliteRepository<Supplier>("supplier"),
+    purchases: new SqliteRepository<Purchase>("purchase"),
+    returns: new SqliteRepository<Return>("return"),
+    dayClosings: new SqliteRepository<DayClosing>("day_closing"),
+    activityLogs: new SqliteRepository<ActivityLog>("activity_log"),
     settings: new SqliteKeyValueStore(),
   };
   return repositories;

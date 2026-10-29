@@ -11,12 +11,23 @@ import {
   type ProductVariant,
 } from "@auxo/core";
 
+export interface ReceiptPrintSettings {
+  paperWidthMm: 58 | 80;
+  footerText: string;
+}
+
+const DEFAULT_RECEIPT_PRINT_SETTINGS: ReceiptPrintSettings = {
+  paperWidthMm: 80,
+  footerText: "We'd love your feedback — thank you for shopping with us!",
+};
+
 export interface InvoicePrintParams {
   invoice: Invoice;
   business: Business;
   customer: Customer | null;
   variants: readonly ProductVariant[];
   products: readonly Product[];
+  receiptSettings?: ReceiptPrintSettings;
 }
 
 function escapeHtml(value: string): string {
@@ -38,6 +49,8 @@ function escapeHtml(value: string): string {
  */
 export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
   const { invoice, business, customer, variants, products } = params;
+  const receiptSettings = params.receiptSettings ?? DEFAULT_RECEIPT_PRINT_SETTINGS;
+  const maxWidthPx = receiptSettings.paperWidthMm === 58 ? 260 : 400;
 
   const variantById = new Map(variants.map((v) => [v.id, v]));
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -88,9 +101,10 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
 <style>
   :root { --emerald: #167d55; }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; margin: 0; padding: 2rem; max-width: 640px; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; margin: 0; padding: 2rem; max-width: ${maxWidthPx}px; }
   h1 { color: var(--emerald); margin: 0 0 0.25rem; }
-  .tagline { color: #0f5c3e; margin: 0 0 1.5rem; font-size: 0.9rem; }
+  .tagline { color: #0f5c3e; margin: 0 0 0.25rem; font-size: 0.9rem; }
+  .biz-reg { color: #555; margin: 0 0 0.25rem; font-size: 0.8rem; }
   .meta { display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; color: #444; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.9rem; }
   th, td { padding: 0.4rem 0.3rem; border-bottom: 1px solid #eee; text-align: left; }
@@ -107,6 +121,8 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
 <body>
   <h1>${escapeHtml(business.name)}</h1>
   <p class="tagline">Built to grow.</p>
+  ${business.gstin ? `<p class="biz-reg">GSTIN: ${escapeHtml(business.gstin)}</p>` : ""}
+  ${business.fssaiNumber ? `<p class="biz-reg">FSSAI: ${escapeHtml(business.fssaiNumber)}</p>` : ""}
   <div class="meta">
     <div>
       <div><strong>Invoice:</strong> ${escapeHtml(invoice.invoiceNumber)}</div>
@@ -135,7 +151,7 @@ export function buildInvoiceHtmlDocument(params: InvoicePrintParams): string {
   </div>
   <p class="status">${paymentStatusLabel[invoice.paymentStatus]}</p>
 
-  <p class="feedback">We'd love your feedback — thank you for shopping with us!</p>
+  <p class="feedback">${escapeHtml(receiptSettings.footerText)}</p>
 
   <script>window.onload = () => window.print();</script>
 </body>
