@@ -117,7 +117,17 @@ export default function HomeScreen({
       onNavigate={(key) => setSection(key as Section)}
       onSignOut={() => void signOut()}
     >
-      {section === "dashboard" && <DashboardScreen canViewFinancials={canViewReports || isSuperAdmin} />}
+      {section === "dashboard" && (
+        <DashboardScreen
+          canViewFinancials={canViewReports || isSuperAdmin}
+          canBill={canBill}
+          canEditInventory={canEditInventory}
+          canEditCustomers={canEditCustomers}
+          canEditPurchases={canEditPurchases}
+          canViewReports={canViewReports}
+          onNavigate={(key) => setSection(key as Section)}
+        />
+      )}
       {section === "pos" && canBill && (
         <BillingScreen business={business} currentEmployee={currentEmployee} canVoid={canVoidBill} />
       )}
