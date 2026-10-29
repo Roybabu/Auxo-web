@@ -10,6 +10,9 @@ export type InvoiceStatus =
 
 export type PaymentStatus = "paid" | "part_paid" | "on_credit" | "return";
 
+/** How the amount paid was collected. Null = not recorded (older invoices, or nothing paid yet). */
+export type PaymentMethod = "cash" | "card" | "upi" | "credit";
+
 export interface InvoiceLine {
   id: UUID;
   productVariantId: UUID;
@@ -30,6 +33,7 @@ export interface Invoice extends Entity {
   /** Held/parked bills for table-based shops require a table number. */
   tableNumber: string | null;
   amountPaid: number;
+  paymentMethod: PaymentMethod | null;
   createdDeviceId: string;
 }
 
@@ -114,6 +118,7 @@ export interface NewInvoiceInput {
   status: InvoiceStatus;
   tableNumber?: string | null;
   amountPaid?: number;
+  paymentMethod?: PaymentMethod | null;
   createdDeviceId: string;
 }
 
@@ -137,6 +142,7 @@ export function newInvoice(input: NewInvoiceInput): Invoice {
     paymentStatus: input.status === "held" ? "on_credit" : computePaymentStatus(total, amountPaid),
     tableNumber: input.tableNumber ?? null,
     amountPaid,
+    paymentMethod: input.paymentMethod ?? null,
     createdDeviceId: input.createdDeviceId,
   };
 }

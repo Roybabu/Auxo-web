@@ -11,6 +11,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
+import { getReceiptSettings } from "../db/receiptSettings.js";
 import { logActivity } from "../db/activityLog.js";
 
 interface CustomersScreenProps {
@@ -149,8 +150,9 @@ function CustomerDetails({
     [completed]
   );
 
-  function printInvoice(invoice: Invoice) {
-    const html = buildInvoiceHtmlDocument({ invoice, business, customer, variants, products });
+  async function printInvoice(invoice: Invoice) {
+    const receiptSettings = await getReceiptSettings();
+    const html = buildInvoiceHtmlDocument({ invoice, business, customer, variants, products, receiptSettings });
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
@@ -173,6 +175,8 @@ function CustomerDetails({
           <dd>{customer.phone || "—"}</dd>
           <dt>Credit limit</dt>
           <dd>{customer.creditLimit != null ? `₹${customer.creditLimit}` : "—"}</dd>
+          <dt>Loyalty points</dt>
+          <dd>{customer.loyaltyPoints}</dd>
         </dl>
       </section>
 
@@ -211,7 +215,7 @@ function CustomerDetails({
                   <span className={`status-badge status-${invoice.status}`}>{invoice.paymentStatus}</span>
                 </td>
                 <td>
-                  <button type="button" onClick={() => printInvoice(invoice)}>
+                  <button type="button" onClick={() => void printInvoice(invoice)}>
                     Print
                   </button>
                 </td>

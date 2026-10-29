@@ -13,6 +13,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { logActivity } from "../db/activityLog.js";
+import { getTaxSettings } from "../db/taxSettings.js";
 
 interface ProductsScreenProps {
   canEdit: boolean;
@@ -215,6 +216,12 @@ function AddProductForm({
   const [initialStock, setInitialStock] = useState("0");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    void getTaxSettings().then((s) => {
+      if (s.defaultTaxRatePercent != null) setTaxRatePercent(String(s.defaultTaxRatePercent));
+    });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

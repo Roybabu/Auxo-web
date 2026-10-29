@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  applyPointsDelta,
   computePaymentStatus,
   invoiceBalanceDue,
   invoiceTotal,
@@ -8,6 +9,7 @@ import {
   newInvoice,
   newInvoiceLine,
   newStockMovement,
+  pointsEarnedForSale,
   stockByVariant,
   type Business,
   type Category,
@@ -15,6 +17,7 @@ import {
   type Employee,
   type Invoice,
   type InvoiceLine,
+  type PaymentMethod,
   type Product,
   type ProductVariant,
   type StockMovement,
@@ -24,6 +27,9 @@ import { getOrCreateDeviceId } from "../db/deviceId.js";
 import { allocateNextInvoiceNumber } from "../db/invoiceSequence.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
 import { logActivity } from "../db/activityLog.js";
+import { getReceiptSettings } from "../db/receiptSettings.js";
+import { getPaymentMethodSettings } from "../db/paymentMethodSettings.js";
+import { getLoyaltySettings } from "../db/loyaltySettings.js";
 
 interface CartLine {
   productVariantId: string;
@@ -52,6 +58,8 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
   const [customerId, setCustomerId] = useState<string>("");
   const [tableNumber, setTableNumber] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<PaymentMethod[]>(["cash"]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [resumingInvoice, setResumingInvoice] = useState<Invoice | null>(null);
@@ -63,13 +71,14 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
 
   async function refreshAll() {
     const repos = getRepositories();
-    const [prods, vars, cats, custs, invoices, moves] = await Promise.all([
+    const [prods, vars, cats, custs, invoices, moves, paymentSettings] = await Promise.all([
       repos.products.list(),
       repos.productVariants.list(),
       repos.categories.list(),
       repos.customers.list(),
       repos.invoices.list(),
       repos.stockMovements.list(),
+      getPaymentMethodSettings(),
     ]);
     setProducts(prods);
     setVariants(vars);
@@ -77,6 +86,10 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     setCustomers(custs);
     setHeldInvoices(invoices.filter((i) => i.status === "held"));
     setMovements(moves);
+    setEnabledPaymentMethods(paymentSettings.enabledMethods);
+    setPaymentMethod((prev) =>
+      paymentSettings.enabledMethods.includes(prev) ? prev : paymentSettings.enabledMethods[0] ?? "cash"
+    );
   }
 
   useEffect(() => {
@@ -168,6 +181,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     setCustomerId("");
     setTableNumber("");
     setAmountPaid("");
+    setPaymentMethod(enabledPaymentMethods[0] ?? "cash");
     setResumingInvoice(null);
     setError(null);
     setCompleted(null);
@@ -251,6 +265,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           customerId: customerId || null,
           tableNumber: tableNumber.trim() || null,
           amountPaid: paid,
+          paymentMethod,
           status: "completed",
           paymentStatus: computePaymentStatus(invoiceTotalValue, paid),
           updatedAt: new Date().toISOString(),
@@ -266,6 +281,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           status: "completed",
           tableNumber: tableNumber.trim() || null,
           amountPaid: paid,
+          paymentMethod,
           createdDeviceId: deviceId,
         });
       }
@@ -279,6 +295,26 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           referenceId: invoice.id,
         });
         await repos.stockMovements.save(movement);
+      }
+
+      if (invoice.customerId) {
+        const loyaltySettings = await getLoyaltySettings();
+        const earned = pointsEarnedForSale(invoiceTotal({ lines: invoice.lines }), loyaltySettings);
+        if (earned > 0) {
+          const loyaltyCustomer = customers.find((c) => c.id === invoice.customerId);
+          if (loyaltyCustomer) {
+            const updatedCustomer = {
+              ...loyaltyCustomer,
+              loyaltyPoints: applyPointsDelta(loyaltyCustomer.loyaltyPoints, earned),
+            };
+            await repos.customers.save(updatedCustomer);
+            void logActivity({
+              employeeId: currentEmployee.id,
+              action: "loyalty.earned",
+              summary: `${loyaltyCustomer.name} earned ${earned} point(s) from sale ${invoice.invoiceNumber}`,
+            });
+          }
+        }
       }
 
       setCompleted(invoice);
@@ -331,10 +367,11 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
     });
   }
 
-  function printCompleted() {
+  async function printCompleted() {
     if (!completed) return;
     const customer = completed.customerId ? customers.find((c) => c.id === completed.customerId) ?? null : null;
-    const html = buildInvoiceHtmlDocument({ invoice: completed, business, customer, variants, products });
+    const receiptSettings = await getReceiptSettings();
+    const html = buildInvoiceHtmlDocument({ invoice: completed, business, customer, variants, products, receiptSettings });
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
@@ -358,7 +395,7 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
           <dd>₹{Math.abs(remainder).toFixed(2)}</dd>
         </dl>
         <div className="checkout-success-actions">
-          <button type="button" onClick={printCompleted}>
+          <button type="button" onClick={() => void printCompleted()}>
             Print receipt
           </button>
           <button type="button" onClick={resetCart}>
@@ -519,6 +556,16 @@ export default function BillingScreen({ business, currentEmployee, canVoid }: Bi
               onChange={(e) => setAmountPaid(e.target.value)}
               placeholder={total.toFixed(2)}
             />
+          </label>
+          <label>
+            Payment method
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}>
+              {enabledPaymentMethods.map((method) => (
+                <option key={method} value={method}>
+                  {method === "upi" ? "UPI" : method.charAt(0).toUpperCase() + method.slice(1)}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 

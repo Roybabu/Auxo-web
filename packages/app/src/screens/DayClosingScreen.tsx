@@ -164,6 +164,10 @@ function CloseForm({
     () =>
       invoices
         .filter((i) => i.status === "completed" && businessDateFor(new Date(i.createdAt)) === today)
+        // Invoices that recorded a payment method count only when it's cash; invoices from
+        // before payment-method tracking existed (paymentMethod === null) fall back to the
+        // old assumption that every payment was cash.
+        .filter((i) => i.paymentMethod === null || i.paymentMethod === "cash")
         .reduce((sum, i) => sum + i.amountPaid, 0),
     [invoices, today]
   );
@@ -232,8 +236,8 @@ function CloseForm({
       </div>
 
       <p className="muted">
-        Collected and refunded figures treat every payment as cash. If you also accept card or UPI, subtract
-        those amounts before comparing to what's physically in the drawer.
+        Collected cash excludes sales recorded as card, UPI, or credit. Older sales made before payment
+        methods were tracked are still counted as cash — check those manually if that applies to today.
       </p>
 
       <label>

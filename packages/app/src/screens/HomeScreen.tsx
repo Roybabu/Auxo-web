@@ -14,6 +14,8 @@ import ReturnsScreen from "./ReturnsScreen.js";
 import DayClosingScreen from "./DayClosingScreen.js";
 import ActivityLogScreen from "./ActivityLogScreen.js";
 import ReportsScreen from "./ReportsScreen.js";
+import TaxReportScreen from "./TaxReportScreen.js";
+import LoyaltyScreen from "./LoyaltyScreen.js";
 import EmployeesScreen from "./EmployeesScreen.js";
 import SettingsScreen from "./SettingsScreen.js";
 
@@ -22,6 +24,7 @@ interface HomeScreenProps {
   currentEmployee: Employee;
   onSignedOut: () => void;
   onRestored: () => void | Promise<void>;
+  onBusinessUpdated: () => void | Promise<void>;
 }
 
 type Section =
@@ -36,11 +39,19 @@ type Section =
   | "suppliers"
   | "purchases"
   | "reports"
+  | "taxReport"
+  | "loyalty"
   | "employees"
   | "activityLog"
   | "settings";
 
-export default function HomeScreen({ business, currentEmployee, onSignedOut, onRestored }: HomeScreenProps) {
+export default function HomeScreen({
+  business,
+  currentEmployee,
+  onSignedOut,
+  onRestored,
+  onBusinessUpdated,
+}: HomeScreenProps) {
   const [section, setSection] = useState<Section>("dashboard");
 
   const canViewInventory = hasPermission(currentEmployee, "inventory.view");
@@ -67,6 +78,8 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
     { key: "suppliers", label: "Suppliers", show: canViewPurchases },
     { key: "purchases", label: "Purchases", show: canViewPurchases },
     { key: "reports", label: "Reports", show: canViewReports },
+    { key: "taxReport", label: "Tax report", show: canViewReports },
+    { key: "loyalty", label: "Loyalty", show: canViewCustomers },
     { key: "employees", label: "Employees", show: isSuperAdmin },
     { key: "activityLog", label: "Activity log", show: isSuperAdmin },
     { key: "settings", label: "Settings", show: isSuperAdmin },
@@ -113,9 +126,15 @@ export default function HomeScreen({ business, currentEmployee, onSignedOut, onR
         <PurchasesScreen canEdit={canEditPurchases} currentEmployee={currentEmployee} />
       )}
       {section === "reports" && canViewReports && <ReportsScreen />}
+      {section === "taxReport" && canViewReports && <TaxReportScreen business={business} />}
+      {section === "loyalty" && canViewCustomers && (
+        <LoyaltyScreen canEdit={canEditCustomers} currentEmployee={currentEmployee} />
+      )}
       {section === "employees" && isSuperAdmin && <EmployeesScreen currentEmployee={currentEmployee} />}
       {section === "activityLog" && isSuperAdmin && <ActivityLogScreen />}
-      {section === "settings" && isSuperAdmin && <SettingsScreen business={business} onRestored={onRestored} />}
+      {section === "settings" && isSuperAdmin && (
+        <SettingsScreen business={business} onRestored={onRestored} onBusinessUpdated={onBusinessUpdated} />
+      )}
     </AppShell>
   );
 }

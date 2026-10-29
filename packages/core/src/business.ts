@@ -4,14 +4,16 @@ import { nowISO } from "./entity.js";
 /**
  * The shop's own profile. A singleton (not an Entity with soft-delete —
  * there is exactly one business per install), stored by the app under a
- * reserved settings key. GST/FSSAI numbers are added in a later step,
- * per the build order; name and owner name are enough to get through
- * setup.
+ * reserved settings key.
  */
 export interface Business {
   name: string;
   ownerName: string;
   createdAt: ISODateTime;
+  /** GST identification number, if registered. Optional — not every shop is GST-registered. */
+  gstin?: string | null;
+  /** FSSAI license number, if applicable (food businesses). */
+  fssaiNumber?: string | null;
 }
 
 export interface BusinessSetupInput {

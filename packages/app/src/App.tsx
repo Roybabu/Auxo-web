@@ -105,6 +105,7 @@ export default function App() {
       currentEmployee={phase.employee}
       onSignedOut={resolvePhase}
       onRestored={resolvePhase}
+      onBusinessUpdated={resolvePhase}
     />
   );
 }

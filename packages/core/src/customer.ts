@@ -7,6 +7,8 @@ export interface Customer extends Entity {
   phone: string | null;
   /** Running credit balance: positive = customer owes the shop. */
   creditLimit: number | null;
+  /** Loyalty points balance, earned automatically on sales and spent via redemption. */
+  loyaltyPoints: number;
 }
 
 export interface NewCustomerInput {
@@ -31,6 +33,7 @@ export function newCustomer(input: NewCustomerInput): Customer {
     name: input.name.trim(),
     phone: input.phone?.trim() || null,
     creditLimit: input.creditLimit ?? null,
+    loyaltyPoints: 0,
   };
 }
 

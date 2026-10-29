@@ -12,6 +12,7 @@ import {
 } from "@auxo/core";
 import { getRepositories } from "../db/repositories.js";
 import { buildInvoiceHtmlDocument } from "../printing/invoiceHtml.js";
+import { getReceiptSettings } from "../db/receiptSettings.js";
 
 interface InvoiceHistoryScreenProps {
   business: Business;
@@ -61,9 +62,10 @@ export default function InvoiceHistoryScreen({ business }: InvoiceHistoryScreenP
     });
   }, [search, invoices, customerById]);
 
-  function printInvoice(invoice: Invoice) {
+  async function printInvoice(invoice: Invoice) {
     const customer = invoice.customerId ? customerById.get(invoice.customerId) ?? null : null;
-    const html = buildInvoiceHtmlDocument({ invoice, business, customer, variants, products });
+    const receiptSettings = await getReceiptSettings();
+    const html = buildInvoiceHtmlDocument({ invoice, business, customer, variants, products, receiptSettings });
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
@@ -85,7 +87,7 @@ export default function InvoiceHistoryScreen({ business }: InvoiceHistoryScreenP
         variants={variants}
         products={products}
         onBack={() => setSelectedId(null)}
-        onPrint={() => printInvoice(selectedInvoice)}
+        onPrint={() => void printInvoice(selectedInvoice)}
       />
     );
   }
@@ -130,7 +132,7 @@ export default function InvoiceHistoryScreen({ business }: InvoiceHistoryScreenP
                     <button type="button" onClick={() => setSelectedId(invoice.id)}>
                       View
                     </button>
-                    <button type="button" onClick={() => printInvoice(invoice)}>
+                    <button type="button" onClick={() => void printInvoice(invoice)}>
                       Print
                     </button>
                   </div>

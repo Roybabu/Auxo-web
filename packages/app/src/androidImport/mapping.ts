@@ -114,6 +114,7 @@ export function mapCustomers(rows: SqlRow[], ids: IdMap): Customer[] {
       name: str(row, "name") ?? "Customer",
       phone: str(row, "phone"),
       creditLimit: creditLimitMinor != null ? minorToRupees(creditLimitMinor) : null,
+      loyaltyPoints: 0,
     };
   });
 }
@@ -236,6 +237,7 @@ export function mapInvoices(
       paymentStatus: amountPaid <= 0 ? "on_credit" : amountPaid >= total ? "paid" : "part_paid",
       tableNumber: null,
       amountPaid,
+      paymentMethod: null,
       createdDeviceId: "ANDROID-IMPORT",
     });
   }
