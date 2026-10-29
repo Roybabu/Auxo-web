@@ -698,6 +698,58 @@ button:active:not(:disabled) {
   border-radius: 6px;
 }
 
+.product-form-wide {
+  max-width: 100%;
+}
+
+.product-form-wide h4 {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.variant-matrix {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.variant-matrix th {
+  text-align: left;
+  padding: 0.3rem 0.4rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.variant-matrix td {
+  padding: 0.25rem 0.4rem;
+}
+
+.variant-matrix input {
+  width: 100%;
+  padding: 0.4rem;
+  border: 1px solid var(--auxo-border);
+  border-radius: 6px;
+}
+
+.add-variant-row-button {
+  align-self: flex-start;
+  background: var(--surface);
+  color: var(--emerald-dark);
+  border: 1px dashed var(--emerald);
+  box-shadow: none;
+}
+
+.add-variant-row-button:hover {
+  background: var(--emerald-pale);
+}
+
 /* --- Billing --- */
 
 .billing-screen {
