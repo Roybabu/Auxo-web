@@ -37,6 +37,7 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
   }
   async listProducts() { return (await (await this.connect()).getAll('products')); }
   async updateTax(productId:string,rate:number|null,apparel:boolean) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,gstRateBasisPoints:rate,apparelGst:apparel,updatedAt:Date.now()});await tx.done;}
+  async updateHsn(productId:string,hsn:string|null) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,hsnCode:hsn,updatedAt:Date.now()});await tx.done;}
   async listMovements() { return (await (await this.connect()).getAll('movements')).sort((a,b)=>b.createdAt-a.createdAt); }
   async listInvoices() { return (await (await this.connect()).getAll('invoices')).sort((a,b)=>b.createdAt-a.createdAt); }
   async listCustomers() { return (await (await this.connect()).getAll('customers')).sort((a,b)=>a.name.localeCompare(b.name)); }

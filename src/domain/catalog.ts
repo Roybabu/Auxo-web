@@ -18,9 +18,11 @@ export const PRODUCT_CATEGORIES = {
 export type ProductCategory = keyof typeof PRODUCT_CATEGORIES;
 export type StockUnit = 'UNIT'|'GRAM'|'MILLILITRE';
 export interface VariantInput {size:string; colour:string; sku:string; barcode:string; price:string; mrp:string; cost:string; opening:string; lowStock:string}
-export interface ProductInput {name:string; category:ProductCategory; brand:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
+export interface ProductInput {name:string; category:ProductCategory; brand:string; hsnCode?:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
 export interface ProductVariant extends VariantInput {id:string; pricePaise:string; mrpPaise:string|null; costPaise:string|null; stock:number; lowStockThreshold:number}
-export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
+export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; hsnCode?:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
+export function parseGstRate(text:string):number|null {const value=text.trim();if(!/^\d{1,3}(\.\d{1,2})?$/.test(value))return null;const [whole,fraction='']=value.split('.');const rate=Number(whole)*100+Number(fraction.padEnd(2,'0'));return rate<=10_000?rate:null;}
+export function validateHsn(text:string):string|null {const value=text.trim();if(value&&!/^(\d{4}|\d{6}|\d{8})$/.test(value))throw new Error('HSN code must be 4, 6 or 8 digits.');return value||null;}
 const count = (s:string,max=1_000_000) => /^\d{1,7}$/.test(s.trim()) && Number(s)<=max;
 const parseStock = (s:string, loose:boolean) => {
   const value=s.trim();
@@ -59,7 +61,7 @@ export function validateProduct(input:ProductInput, existing:readonly Product[])
   });
   if(input.gstRateBasisPoints!==null&&(!Number.isInteger(input.gstRateBasisPoints)||input.gstRateBasisPoints<0||input.gstRateBasisPoints>10_000))throw new Error('GST rate must be between 0% and 100%.');
   if(input.apparelGst&&!['GARMENT','FOOTWEAR'].includes(input.category))throw new Error('The apparel GST slab applies only to garments and footwear.');
-  const now=Date.now(); return {id:crypto.randomUUID(),name,category:input.category,brand:config.label==='Restaurant'?null:input.brand.trim()||null,gstRateBasisPoints:input.gstRateBasisPoints,apparelGst:input.apparelGst,stockUnit:input.category==='LOOSE'?'GRAM':'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants};
+  const now=Date.now(); return {id:crypto.randomUUID(),name,category:input.category,brand:config.label==='Restaurant'?null:input.brand.trim()||null,hsnCode:validateHsn(input.hsnCode??''),gstRateBasisPoints:input.gstRateBasisPoints,apparelGst:input.apparelGst,stockUnit:input.category==='LOOSE'?'GRAM':'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants};
 }
 export type MovementReason='INITIAL'|'RECEIVED'|'RETURNED'|'SOLD'|'DAMAGED'|'CORRECTION';
 export interface StockMovement {id:string;variantId:string;quantityChange:number;reason:MovementReason;note:string|null;createdAt:number}
