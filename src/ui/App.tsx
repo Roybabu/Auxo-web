@@ -30,6 +30,8 @@ import {StockCountPage} from './StockCountPage';
 import {CategoryService} from '../application/categoryService';
 import {CategoriesPage} from './CategoriesPage';
 import {CategorySetupPage} from './CategorySetupPage';
+import {ProductImportPage} from './ProductImportPage';
+import {LabelPrintPage} from './LabelPrintPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured),sales=new SalesService(secured,secured);
@@ -62,6 +64,8 @@ export default function App(){
     <Route path="/restaurant" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} restaurantMode/></Guard>}/>
     <Route path="/customers" element={<Guard permission="MANAGE_CUSTOMERS"><CustomerAccountsPage sales={sales} canReceive={auth.can('RECEIVE_ACCOUNT_PAYMENT')}/></Guard>}/>
     <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><ProductsPage service={catalog}/></Guard>}/>
+    <Route path="/products/import" element={<Guard permission="MANAGE_PRODUCTS"><ProductImportPage service={catalog}/></Guard>}/>
+    <Route path="/products/:productId/labels" element={<Guard permission="MANAGE_PRODUCTS"><LabelPrintPage service={catalog}/></Guard>}/>
     <Route path="/inventory" element={<Guard permission="VIEW_STOCK_RECORDS"><InventoryPage service={catalog}/></Guard>}/>
     <Route path="/stock-count" element={<Guard permission="ADJUST_STOCK"><StockCountPage service={stockCount}/></Guard>}/>
     <Route path="/employees" element={<Guard permission="MANAGE_USERS"><EmployeesPage auth={auth}/></Guard>}/>
