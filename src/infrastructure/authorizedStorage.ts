@@ -1,5 +1,5 @@
 import type { ShopStorage } from '../application/shopService';
-import type { CatalogStorage } from '../application/catalogService';
+import type { CatalogStorage, DeleteProductResult } from '../application/catalogService';
 import type { SalesStorage } from '../application/salesService';
 import type { AuthService } from '../application/authService';
 import type { ShopIdentity } from '../domain/shop';
@@ -26,6 +26,7 @@ export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorag
   async listMovements(){await this.auth.require('VIEW_STOCK_RECORDS');return this.raw.listMovements();}
   async listStockBatches(){await this.auth.require('VIEW_STOCK_RECORDS');return this.raw.listStockBatches();}
   async saveProduct(product:Product,movements:StockMovement[]){await this.auth.require('MANAGE_PRODUCTS');await this.raw.saveProduct(product,movements);await this.log('PRODUCT_SAVED','product',product.id,`Saved product ${product.name}`);}
+  async deleteProduct(productId:string):Promise<DeleteProductResult>{await this.auth.require('MANAGE_PRODUCTS');const user=this.auth.getSnapshot();return this.raw.deleteProduct(productId,user?{id:user.id,name:user.name,role:user.role}:null);}
   async adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batch?:Pick<StockBatch,'batchNumber'|'expiryDate'>,batchId?:string|null){await this.auth.require('ADJUST_STOCK');await this.raw.adjustStock(variantId,change,reason,note,batch,batchId);const writtenOff=change<0&&['DAMAGED','EXPIRED','SPOILED'].includes(reason),action=writtenOff?'STOCK_WRITTEN_OFF':'STOCK_CHANGED',summary=writtenOff?`Wrote off ${Math.abs(change)} (${reason.toLowerCase()})`:`Stock ${change>=0?'+':''}${change} (${reason.toLowerCase()})${note?.trim()?`: ${note.trim()}`:''}`;await this.log(action,'variant',variantId,summary);}
   async updateTax(productId:string,rate:number|null,apparel:boolean){await this.auth.require('MANAGE_PRODUCTS');await this.raw.updateTax(productId,rate,apparel);await this.log('PRODUCT_SAVED','product',productId,`Updated GST rate${rate===null?'':' to '+(rate/100)+'%'}`);}
   async updateHsn(productId:string,hsn:string|null){await this.auth.require('MANAGE_PRODUCTS');await this.raw.updateHsn(productId,hsn);await this.log('PRODUCT_SAVED','product',productId,`Updated HSN${hsn?` to ${hsn}`:''}`);}
