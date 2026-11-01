@@ -56,7 +56,7 @@ export function InventoryPage({service}:{service:CatalogService}) {
       {products.length===0&&<tr><td colSpan={6}>Add a product first to manage stock.</td></tr>}
     </Table>
     <h2>Recent stock movements</h2><Table headings={['Time','Product / variant','Reason','Change']}>
-      {movements.slice(0,100).map(m=><tr key={m.id}><td>{new Date(m.createdAt).toLocaleString()}</td><td>{labels.get(m.variantId)??'Removed product'}</td><td>{m.reason}</td><td>{m.quantityChange>0?'+':''}{m.quantityChange}</td></tr>)}
+      {movements.slice(0,100).map(m=>{const product=products.find(p=>p.variants.some(v=>v.id===m.variantId));const amount=product?.category==='LOOSE'?`${(Math.abs(m.quantityChange)/1000).toFixed(3)} g`:`${Math.abs(m.quantityChange)} units`;return <tr key={m.id}><td>{new Date(m.createdAt).toLocaleString()}</td><td>{labels.get(m.variantId)??'Removed product'}</td><td>{m.reason}</td><td>{m.quantityChange>0?'+':'−'}{amount}</td></tr>;})}
       {movements.length===0&&<tr><td colSpan={4}>No stock movements recorded yet.</td></tr>}
     </Table>
   </section>;
