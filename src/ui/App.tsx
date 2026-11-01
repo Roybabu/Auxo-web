@@ -27,12 +27,15 @@ import {ActivityLogService} from '../application/activityLogService';
 import {ActivityLogPage} from './ActivityLogPage';
 import {StockCountService} from '../application/stockCountService';
 import {StockCountPage} from './StockCountPage';
+import {CategoryService} from '../application/categoryService';
+import {CategoriesPage} from './CategoriesPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured),sales=new SalesService(secured,secured);
 const backups=new BackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
 const activityLog=new ActivityLogService(database,auth);
 const stockCount=new StockCountService(database,auth);
+const categories=new CategoryService(database,auth);
 const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['stock-count','Stock count','ADJUST_STOCK'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
@@ -47,7 +50,7 @@ export default function App(){
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
   return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button><nav aria-label="Main navigation">
     <NavLink to="/" end>Overview</NavLink>{modules.filter(([, ,permission])=>auth.can(permission)).map(([path,label])=><NavLink key={path} to={`/${path}`}>{label}</NavLink>)}
-    {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
+    {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/categories">Product categories</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
   </nav></aside><main><Routes>
     <Route path="/" element={<section><h1>AUXO Web</h1><p>Local business workspace. Choose a module from the navigation.</p></section>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
@@ -59,6 +62,7 @@ export default function App(){
     <Route path="/stock-count" element={<Guard permission="ADJUST_STOCK"><StockCountPage service={stockCount}/></Guard>}/>
     <Route path="/employees" element={<Guard permission="MANAGE_USERS"><EmployeesPage auth={auth}/></Guard>}/>
     <Route path="/settings" element={<Guard permission="MANAGE_SETTINGS"><ShopPage service={shops}/></Guard>}/>
+    <Route path="/categories" element={<Guard permission="MANAGE_SETTINGS"><CategoriesPage service={categories}/></Guard>}/>
     <Route path="/recovery" element={<Guard permission="MANAGE_USERS"><RecoveryRoute/></Guard>}/>
     <Route path="/suppliers" element={<Guard permission="MANAGE_SUPPLIERS"><SuppliersPage service={purchasing}/></Guard>}/>
     <Route path="/purchases" element={<Guard permission="MANAGE_PURCHASES"><PurchasesPage service={purchasing} canReceive={auth.can('RECEIVE_GOODS')}/></Guard>}/>

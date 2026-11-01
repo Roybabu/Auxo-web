@@ -18,9 +18,9 @@ export const PRODUCT_CATEGORIES = {
 export type ProductCategory = keyof typeof PRODUCT_CATEGORIES;
 export type StockUnit = 'UNIT'|'GRAM'|'MILLILITRE';
 export interface VariantInput {size:string; colour:string; sku:string; barcode:string; price:string; mrp:string; cost:string; opening:string; lowStock:string;batchNumber?:string;expiryDate?:string}
-export interface ProductInput {name:string; category:ProductCategory; brand:string; hsnCode?:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
+export interface ProductInput {name:string; category:ProductCategory; categoryId?:string; brand:string; hsnCode?:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
 export interface ProductVariant extends Omit<VariantInput,'batchNumber'|'expiryDate'> {id:string; pricePaise:string; mrpPaise:string|null; costPaise:string|null; stock:number; lowStockThreshold:number;batchNumber?:string|null;expiryDate?:string|null}
-export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; hsnCode?:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
+export interface Product {id:string; name:string; category:ProductCategory; categoryId?:string; brand:string|null; hsnCode?:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
 export function parseGstRate(text:string):number|null {const value=text.trim();if(!/^\d{1,3}(\.\d{1,2})?$/.test(value))return null;const [whole,fraction='']=value.split('.');const rate=Number(whole)*100+Number(fraction.padEnd(2,'0'));return rate<=10_000?rate:null;}
 export function validateHsn(text:string):string|null {const value=text.trim();if(value&&!/^(\d{4}|\d{6}|\d{8})$/.test(value))throw new Error('HSN code must be 4, 6 or 8 digits.');return value||null;}
 const count = (s:string,max=1_000_000) => /^\d{1,7}$/.test(s.trim()) && Number(s)<=max;

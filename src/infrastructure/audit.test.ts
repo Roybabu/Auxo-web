@@ -8,6 +8,7 @@ import {AuthorizedStorage} from './authorizedStorage';
 import type {Product} from '../domain/catalog';
 import type {InvoiceRecord} from '../domain/billing';
 import type {Supplier} from '../domain/purchasing';
+import {CatalogService} from '../application/catalogService';
 
 it('persists recent activity, includes it in snapshots, and restores it with backups',async()=>{
  const db=new LocalDatabase(`audit-${crypto.randomUUID()}`);
@@ -83,6 +84,20 @@ it('records a separate batch audit entry for every batch consumed by a write-off
  const events=(await db.listRecentAudit()).filter(row=>row.action==='STOCK_WRITTEN_OFF');
  expect(events).toHaveLength(2);expect(events).toEqual(expect.arrayContaining([expect.objectContaining({entityType:'batch',entityId:first.id,summary:'Wrote off 2 (damaged)'}),expect.objectContaining({entityType:'batch',entityId:second.id,summary:'Wrote off 2 (damaged)'})]));
  expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(1);await db.close();
+});
+
+it('audits category add, rename, enable and delete operations',async()=>{
+ const db=new LocalDatabase(`audit-categories-${crypto.randomUUID()}`),auth=new AuthService(db);await auth.setup('Owner','owner.category','Strong-Password-785','Strong-Password-785');
+ const actor=auth.getSnapshot(),builtIns=await db.listCategories();expect(builtIns.find(row=>row.profile==='RESTAURANT')?.enabled).toBe(false);
+ const added=await db.addCategory('Sweets','PACKAGED_FOOD',actor);await db.renameCategory(added.id,'Indian Sweets',actor);await db.setCategoryEnabled(added.id,false,actor);await db.deleteCategory(added.id,actor);
+ const events=(await db.listRecentAudit()).filter(row=>row.action==='CATEGORIES_CHANGED');expect(events.map(row=>row.summary).sort()).toEqual(['Category "Sweets" added',`Category ${added.id} renamed to "Indian Sweets"`,`Category ${added.id} switched off`,'Category Indian Sweets deleted'].sort());expect(events.every(row=>row.entityType==='category'&&row.entityId===added.id)).toBe(true);await db.close();
+});
+
+it('uses the selected category profile and preserves the category relation on products',async()=>{
+ const db=new LocalDatabase(`product-category-link-${crypto.randomUUID()}`),auth=new AuthService(db);await auth.setup('Owner','owner.product-category','Strong-Password-886','Strong-Password-886');
+ const category=await db.addCategory('Sweets','PACKAGED_FOOD',auth.getSnapshot()),catalog=new CatalogService(new AuthorizedStorage(db,auth));
+ const product=await catalog.create({name:'Jaggery',category:'PACKAGED_FOOD',categoryId:category.id,brand:'',gstRateBasisPoints:null,apparelGst:false,variants:[{size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0'}]});
+ expect(product.category).toBe('PACKAGED_FOOD');expect(product.categoryId).toBe(category.id);await expect(db.deleteCategory(category.id,auth.getSnapshot())).rejects.toThrow(/products still use/i);await db.close();
 });
 
 it('rolls back a new administrator account when its sign-in audit fails',async()=>{
