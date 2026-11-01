@@ -1,13 +1,17 @@
 import { HashRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { ShopService } from '../application/shopService';
 import { CatalogService } from '../application/catalogService';
+import { SalesService } from '../application/salesService';
 import { LocalDatabase } from '../infrastructure/localDatabase';
 import { reports } from '../domain/reports';
 import { Pending, Table } from './primitives';
 import { ShopPage } from './ShopPage';
 import { InventoryPage, ProductsPage } from './CatalogPages';
-const service = new ShopService(new LocalDatabase());
-const catalog = new CatalogService(new LocalDatabase());
+import { SalesPage } from './SalesPage';
+const database = new LocalDatabase();
+const service = new ShopService(database);
+const catalog = new CatalogService(database);
+const sales = new SalesService(database,database);
 const modules = [['pos','POS billing'],['restaurant','Restaurant'],['products','Products'],['inventory','Inventory'],['customers','Customers'],['suppliers','Suppliers'],['purchases','Purchases'],['gst','GST reports'],['closing','Day-end closing'],['employees','Employees'],['backups','Backups']] as const;
 export default function App() {
   return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><nav aria-label="Main navigation">
@@ -15,7 +19,8 @@ export default function App() {
     <NavLink to="/reports">Reports</NavLink><NavLink to="/settings">Settings</NavLink>
   </nav></aside><main><Routes>
     <Route path="/" element={<section><h1>AUXO Web</h1><p>A fresh workspace for your business.</p><p>This is the first foundation build. Business settings can be saved locally. Billing and the other modules are not available yet.</p><NavLink className="action" to="/settings">Set up store details</NavLink></section>}/>
-    {modules.filter(([path])=>path!=='products'&&path!=='inventory').map(([path,label])=><Route key={path} path={`/${path}`} element={<Pending title={label}/>}/>)}
+    {modules.filter(([path])=>path!=='products'&&path!=='inventory'&&path!=='pos').map(([path,label])=><Route key={path} path={`/${path}`} element={<Pending title={label}/>}/>)}
+    <Route path="/pos" element={<SalesPage sales={sales} shops={service}/>}/>
     <Route path="/products" element={<ProductsPage service={catalog}/>}/>
     <Route path="/inventory" element={<InventoryPage service={catalog}/>}/>
     <Route path="/settings" element={<ShopPage service={service}/>}/>

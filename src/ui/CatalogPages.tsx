@@ -4,7 +4,7 @@ import { PRODUCT_CATEGORIES, type Product, type ProductCategory, type ProductInp
 import { InputField, Table } from './primitives';
 
 const emptyVariant = (): VariantInput => ({size:'',colour:'',sku:'',barcode:'',price:'',mrp:'',cost:'',opening:'0',lowStock:'0'});
-const emptyInput = (): ProductInput => ({name:'',category:'GENERAL',brand:'',variants:[emptyVariant()]});
+const emptyInput = (): ProductInput => ({name:'',category:'GENERAL',brand:'',gstRateBasisPoints:null,apparelGst:false,variants:[emptyVariant()]});
 const categories = Object.entries(PRODUCT_CATEGORIES) as [ProductCategory, (typeof PRODUCT_CATEGORIES)[ProductCategory]][];
 const money = (paise:string) => (Number(paise)/100).toFixed(2);
 
@@ -16,11 +16,14 @@ export function ProductsPage({service}:{service:CatalogService}) {
   function update<K extends keyof ProductInput>(key:K,value:ProductInput[K]){setForm(current=>({...current,[key]:value}));}
   function updateVariant(index:number,key:keyof VariantInput,value:string){setForm(current=>({...current,variants:current.variants.map((v,i)=>i===index?{...v,[key]:value}:v)}));}
   async function submit(event:FormEvent){event.preventDefault();setError('');setMessage('');try{await service.create(form);setForm(emptyInput());await refresh();setMessage('Product saved on this device.');}catch(e){setError(e instanceof Error?e.message:'Could not save product.');}}
+  async function setTax(product:Product,selection:string){setError('');setMessage('');try{await service.setTax(product,selection);await refresh();setMessage(`GST rate updated for ${product.name}.`);}catch(e){setError(e instanceof Error?e.message:'Could not update GST rate.');}}
   return <section><h1>Products</h1><p>Add products and sellable variants. Category rules, barcode checks and price validation follow the Android product rules.</p>
     <form onSubmit={submit}>
       <div className="form-grid"><InputField label="Product name" required minLength={2} maxLength={80} value={form.name} onChange={e=>update('name',e.target.value)}/>
-        <label>Category<select value={form.category} onChange={e=>update('category',e.target.value as ProductCategory)}>{categories.map(([key,c])=><option key={key} value={key}>{c.label}</option>)}</select></label>
-        <InputField label="Brand (optional)" maxLength={60} value={form.brand} onChange={e=>update('brand',e.target.value)}/></div>
+        <label>Category<select value={form.category} onChange={e=>{const category=e.target.value as ProductCategory;setForm(current=>({...current,category,apparelGst:current.apparelGst&&['GARMENT','FOOTWEAR'].includes(category)}));}}>{categories.map(([key,c])=><option key={key} value={key}>{c.label}</option>)}</select></label>
+        <InputField label="Brand (optional)" maxLength={60} value={form.brand} onChange={e=>update('brand',e.target.value)}/>
+        <label>GST rate<select value={form.apparelGst?'APPAREL':form.gstRateBasisPoints===null?'':String(form.gstRateBasisPoints)} onChange={e=>{const value=e.target.value;setForm(current=>({...current,apparelGst:value==='APPAREL',gstRateBasisPoints:value===''||value==='APPAREL'?null:Number(value)}));}}><option value="">Choose rate</option>{[0,500,1800,4000].map(rate=><option key={rate} value={rate}>{rate/100}%</option>)}{['GARMENT','FOOTWEAR'].includes(form.category)&&<option value="APPAREL">Garments / footwear slab (5% or 18%)</option>}</select></label></div>
+      {form.apparelGst&&form.category!=='GARMENT'&&form.category!=='FOOTWEAR'&&<p className="error">The apparel GST slab only applies to garments or footwear; select another rate.</p>}
       <h2>Sellable variants</h2>
       {form.variants.map((v,index)=><fieldset className="variant-form" key={index}><legend>Variant {index+1}</legend><div className="form-grid">
         {sizeColour&&<><InputField label="Size" maxLength={12} value={v.size} onChange={e=>updateVariant(index,'size',e.target.value)}/><InputField label="Colour" maxLength={30} value={v.colour} onChange={e=>updateVariant(index,'colour',e.target.value)}/></>}
@@ -33,9 +36,9 @@ export function ProductsPage({service}:{service:CatalogService}) {
       {error&&<p className="error" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
     </form>
     <h2>Saved products ({products.length})</h2>
-    <Table headings={['Product','Category','Variant','Price','Stock','SKU / barcode']}>
-      {products.flatMap(p=>p.variants.map(v=><tr key={v.id}><td>{p.name}{p.brand?` · ${p.brand}`:''}</td><td>{PRODUCT_CATEGORIES[p.category].label}</td><td>{[v.size,v.colour].filter(Boolean).join(' / ')||'Default'}</td><td>{money(v.pricePaise)}</td><td>{p.category==='LOOSE'?(v.stock/1000).toFixed(3):v.stock}</td><td>{v.sku||'—'}{v.barcode?` / ${v.barcode}`:''}</td></tr>))}
-      {products.length===0&&<tr><td colSpan={6}>No products saved yet.</td></tr>}
+    <Table headings={['Product','Category','Variant','GST','Price','Stock','SKU / barcode']}>
+      {products.flatMap(p=>p.variants.map((v,index)=><tr key={v.id}>{index===0&&<td rowSpan={p.variants.length}>{p.name}{p.brand?` · ${p.brand}`:''}</td>}{index===0&&<td rowSpan={p.variants.length}>{PRODUCT_CATEGORIES[p.category].label}</td>}<td>{[v.size,v.colour].filter(Boolean).join(' / ')||'Default'}</td><td>{index===0&&<select aria-label={`GST rate for ${p.name}`} value={p.apparelGst?'APPAREL':p.gstRateBasisPoints==null?'':String(p.gstRateBasisPoints)} onChange={e=>void setTax(p,e.target.value)}><option value="">Not set</option>{[0,500,1800,4000].map(rate=><option key={rate} value={rate}>{rate/100}%</option>)}{['GARMENT','FOOTWEAR'].includes(p.category)&&<option value="APPAREL">Apparel slab</option>}</select>}</td><td>{money(v.pricePaise)}</td><td>{p.category==='LOOSE'?(v.stock/1000).toFixed(3):v.stock}</td><td>{v.sku||'—'}{v.barcode?` / ${v.barcode}`:''}</td></tr>))}
+      {products.length===0&&<tr><td colSpan={7}>No products saved yet.</td></tr>}
     </Table>
   </section>;
 }

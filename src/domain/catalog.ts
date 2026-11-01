@@ -18,9 +18,9 @@ export const PRODUCT_CATEGORIES = {
 export type ProductCategory = keyof typeof PRODUCT_CATEGORIES;
 export type StockUnit = 'UNIT'|'GRAM'|'MILLILITRE';
 export interface VariantInput {size:string; colour:string; sku:string; barcode:string; price:string; mrp:string; cost:string; opening:string; lowStock:string}
-export interface ProductInput {name:string; category:ProductCategory; brand:string; variants:VariantInput[]}
+export interface ProductInput {name:string; category:ProductCategory; brand:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
 export interface ProductVariant extends VariantInput {id:string; pricePaise:string; mrpPaise:string|null; costPaise:string|null; stock:number; lowStockThreshold:number}
-export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
+export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
 const count = (s:string,max=1_000_000) => /^\d{1,7}$/.test(s.trim()) && Number(s)<=max;
 const parseStock = (s:string, loose:boolean) => {
   const value=s.trim();
@@ -57,7 +57,9 @@ export function validateProduct(input:ProductInput, existing:readonly Product[])
     if(opening===null||!count(row.lowStock))throw new Error(input.category==='LOOSE'?'Enter valid opening stock (up to three decimals) and a whole low-stock level.':'Stock and low-stock levels must be whole numbers from 0 to 1,000,000.');
     return {id:crypto.randomUUID(),size:config.sizeColour?row.size.trim():'',colour:config.sizeColour?row.colour.trim():'',sku,barcode,price:row.price.trim(),mrp:row.mrp.trim(),cost:row.cost.trim(),opening:row.opening.trim(),lowStock:row.lowStock.trim(),pricePaise:price.toString(),mrpPaise:mrp?.toString()??null,costPaise:cost?.toString()??null,stock:opening,lowStockThreshold:Number(row.lowStock)};
   });
-  const now=Date.now(); return {id:crypto.randomUUID(),name,category:input.category,brand:config.label==='Restaurant'?null:input.brand.trim()||null,stockUnit:input.category==='LOOSE'?'GRAM':'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants};
+  if(input.gstRateBasisPoints!==null&&(!Number.isInteger(input.gstRateBasisPoints)||input.gstRateBasisPoints<0||input.gstRateBasisPoints>10_000))throw new Error('GST rate must be between 0% and 100%.');
+  if(input.apparelGst&&!['GARMENT','FOOTWEAR'].includes(input.category))throw new Error('The apparel GST slab applies only to garments and footwear.');
+  const now=Date.now(); return {id:crypto.randomUUID(),name,category:input.category,brand:config.label==='Restaurant'?null:input.brand.trim()||null,gstRateBasisPoints:input.gstRateBasisPoints,apparelGst:input.apparelGst,stockUnit:input.category==='LOOSE'?'GRAM':'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants};
 }
 export type MovementReason='INITIAL'|'RECEIVED'|'RETURNED'|'SOLD'|'DAMAGED'|'CORRECTION';
 export interface StockMovement {id:string;variantId:string;quantityChange:number;reason:MovementReason;note:string|null;createdAt:number}

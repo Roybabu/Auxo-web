@@ -1,0 +1,39 @@
+import { checkedMoney, formatMoney, parseMoney } from './money';
+import type { Product, ProductVariant } from './catalog';
+
+export type DiscountDraft={kind:'AMOUNT'|'PERCENT';value:string;reason:string};
+export type TaxSettings={gstRegistered:boolean;pricesIncludeTax:boolean;roundOff:boolean;stateCode:string;invoicePrefix:string;storeName:string;address:string;gstin:string};
+export type CartLine={productId:string;variantId:string;name:string;variantLabel:string;barcode:string;quantity:number;unitPricePaise:string;mrpPaise:string|null;stockUnit:'UNIT'|'GRAM'|'MILLILITRE';availableStock:number;gstRateBasisPoints:number|null;apparelGst:boolean};
+export type PaymentDraft={method:'CASH'|'UPI'|'CARD';amount:string;reference:string;tendered:string};
+export type InvoiceLineSnapshot={productId:string;variantId:string;name:string;variantLabel:string;barcode:string;quantity:number;unitPricePaise:string;mrpPaise:string|null;stockUnit:CartLine['stockUnit'];discountPaise:string;taxablePaise:string;gstRateBasisPoints:number;cgstPaise:string;sgstPaise:string;igstPaise:string;totalPaise:string};
+export type InvoiceRecord={id:string;number:string;createdAt:number;lines:InvoiceLineSnapshot[];subtotalPaise:string;discountPaise:string;taxablePaise:string;cgstPaise:string;sgstPaise:string;igstPaise:string;roundOffPaise:string;grandTotalPaise:string;gstRegistered:boolean;pricesIncludeTax:boolean;interState:boolean;seller:{storeName:string;address:string;gstin:string;stateCode:string};payments:{method:PaymentDraft['method'];amountPaise:string;reference:string|null;tenderedPaise:string|null;changePaise:string|null}[]};
+export type BillTotals={subtotal:bigint;discount:bigint;taxable:bigint;cgst:bigint;sgst:bigint;igst:bigint;beforeRound:bigint;roundOff:bigint;grandTotal:bigint;lines:InvoiceLineSnapshot[]};
+
+const halfUp=(n:bigint,d:bigint)=>{if(n<0n||d<=0n)throw new RangeError('Invalid rounding input.');return (n+d/2n)/d;};
+const sum=(values:bigint[])=>values.reduce((a,b)=>checkedMoney(a+b),0n);
+function percentValue(base:bigint,text:string){if(!/^\d{1,3}(\.\d{1,2})?$/.test(text.trim()))throw new Error('Enter a discount percentage from 0 to 100.');const [whole,fraction='']=text.trim().split('.');const bp=BigInt(whole!)*100n+BigInt(fraction.padEnd(2,'0'));if(bp>10000n)throw new Error('Discount cannot exceed 100%.');return {amount:halfUp(base*bp,10000n),basisPoints:Number(bp)};}
+export function parseDiscount(base:bigint,draft:DiscountDraft){const value=draft.value.trim();if(!value)return 0n;let amount:bigint;if(draft.kind==='PERCENT')amount=percentValue(base,value).amount;else {const parsed=parseMoney(value);if(parsed===null)throw new Error('Enter a valid discount amount.');amount=parsed;}if(amount===0n)return 0n;if(amount>base)throw new Error('Discount cannot exceed the bill subtotal.');if(!draft.reason.trim())throw new Error('Enter a reason for the discount.');if(draft.reason.trim().length>60)throw new Error('Discount reason must be 60 characters or fewer.');return amount;}
+function lineGross(line:CartLine){const price=BigInt(line.unitPricePaise);return checkedMoney(line.stockUnit==='UNIT'?price*BigInt(line.quantity):halfUp(price*BigInt(line.quantity),1000n));}
+function allocate(amount:bigint,weights:bigint[]){const total=sum(weights);if(!amount||!total)return weights.map(()=>0n);const floors=weights.map(w=>amount*w/total);let left=amount-sum(floors);const indices=weights.map((_,i)=>i).sort((a,b)=>{const ra=amount*weights[a]!%total,rb=amount*weights[b]!%total;return ra===rb?a-b:ra>rb?-1:1;});for(const i of indices){if(left<=0n)break;floors[i]!+=1n;left--;}return floors;}
+export function calculateBill(lines:CartLine[],settings:TaxSettings,discountDraft:DiscountDraft,interState:boolean):BillTotals{
+  if(!lines.length)throw new Error('Add at least one item to the bill.');
+  for(const line of lines){if(!Number.isInteger(line.quantity)||line.quantity<=0)throw new Error('Item quantities must be greater than zero.');if(line.quantity>line.availableStock)throw new Error(`${line.name} does not have enough stock.`);if(settings.gstRegistered&&line.gstRateBasisPoints===null&&!line.apparelGst)throw new Error(`${line.name} needs a GST rate before checkout.`);}
+  const gross=lines.map(lineGross),subtotal=sum(gross),discount=parseDiscount(subtotal,discountDraft),shares=allocate(discount,gross);
+  const snap=lines.map((line,i)=>{
+    const net=gross[i]!-shares[i]!;let rate=settings.gstRegistered?(line.gstRateBasisPoints??0):0;
+    if(settings.gstRegistered&&line.apparelGst){const tentative=settings.pricesIncludeTax?halfUp(net*10000n,10500n):net;rate=tentative<=250000n?500:1800;}
+    const taxable=settings.pricesIncludeTax?halfUp(net*10000n,10000n+BigInt(rate)):net;
+    const tax=settings.pricesIncludeTax?net-taxable:halfUp(net*BigInt(rate),10000n);
+    const cgst=interState?0n:(tax+1n)/2n,sgst=interState?0n:tax-cgst,igst=interState?tax:0n;
+    return {productId:line.productId,variantId:line.variantId,name:line.name,variantLabel:line.variantLabel,barcode:line.barcode,quantity:line.quantity,unitPricePaise:line.unitPricePaise,mrpPaise:line.mrpPaise,stockUnit:line.stockUnit,discountPaise:shares[i]!.toString(),taxablePaise:taxable.toString(),gstRateBasisPoints:rate,cgstPaise:cgst.toString(),sgstPaise:sgst.toString(),igstPaise:igst.toString(),totalPaise:checkedMoney(taxable+tax).toString()};
+  });
+  const taxable=sum(snap.map(x=>BigInt(x.taxablePaise))),cgst=sum(snap.map(x=>BigInt(x.cgstPaise))),sgst=sum(snap.map(x=>BigInt(x.sgstPaise))),igst=sum(snap.map(x=>BigInt(x.igstPaise))),beforeRound=sum(snap.map(x=>BigInt(x.totalPaise)));
+  const rounded=settings.roundOff?halfUp(beforeRound,100n)*100n:beforeRound;
+  return {subtotal,discount,taxable,cgst,sgst,igst,beforeRound,roundOff:checkedMoney(rounded-beforeRound),grandTotal:checkedMoney(rounded),lines:snap};
+}
+export function validatePayments(drafts:PaymentDraft[],total:bigint){
+  if(!drafts.length)throw new Error('Enter at least one payment.');let paid=0n;
+  const records=drafts.map(d=>{const amount=parseMoney(d.amount);if(amount===null||amount<=0n)throw new Error('Each payment must have a valid positive amount.');paid+=amount;const reference=d.reference.trim();if(d.method==='UPI'&&reference&&!/^[A-Za-z0-9]{4,35}$/.test(reference))throw new Error('UPI reference must be 4–35 letters or digits.');if(d.method==='CARD'&&reference&&!/^\d{4}$/.test(reference))throw new Error('For card payments, enter the last four digits.');const tendered=d.method==='CASH'&&d.tendered.trim()?parseMoney(d.tendered):null;if(d.method==='CASH'&&d.tendered.trim()&&(tendered===null||tendered<amount))throw new Error('Cash tendered must be at least the cash payment amount.');return {method:d.method,amountPaise:amount.toString(),reference:reference||null,tenderedPaise:tendered?.toString()??null,changePaise:tendered&&tendered>amount?(tendered-amount).toString():null};});
+  if(paid!==total)throw new Error(`Payments must equal the bill total of ${formatMoney(total)}.`);return records;
+}
+export function cartLineFromProduct(product:Product,variant:ProductVariant):CartLine{return {productId:product.id,variantId:variant.id,name:product.name,variantLabel:[variant.size,variant.colour].filter(Boolean).join(' / '),barcode:variant.barcode,quantity:product.stockUnit==='UNIT'?1:1000,unitPricePaise:variant.pricePaise,mrpPaise:variant.mrpPaise,stockUnit:product.stockUnit,availableStock:variant.stock,gstRateBasisPoints:product.gstRateBasisPoints??null,apparelGst:product.apparelGst??false};}

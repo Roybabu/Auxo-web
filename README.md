@@ -12,11 +12,13 @@ npm run typecheck
 npm run build
 ```
 
-## First phase
+## Implemented slices
 
-Implemented: React/TypeScript/Vite shell, desktop navigation with hash routes, IndexedDB store identity persistence, reusable input/table primitives, PWA build configuration and tested money parsing/validation foundations.
+The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. Products and inventory support product variants, category checks, barcode/SKU validation, GST-rate assignment, opening stock, manual stock changes, and movement history.
 
-Only store name/address settings currently save business data. Other module routes are explicitly marked not implemented. Report catalog contains all 13 Android identifiers; report calculations are not implemented. No authentication or billing is provided yet. Do not use this foundation for live transactions.
+The initial POS slice supports product search and barcode entry, quantities, bill-level amount or percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history, and atomic local invoice/stock updates.
+
+This is not ready for live transactions. Line-level discounts, customer attachment and credit, employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
 
 Premium styling, desktop packaging, cloud services and synchronization are deferred. No Android-specific APIs, biometric/PIN login, Bluetooth or installer logic is included.
 
@@ -27,7 +29,7 @@ Premium styling, desktop packaging, cloud services and synchronization are defer
 - `src/infrastructure`: browser IndexedDB implementation.
 - `src/ui`: pages, navigation and reusable presentation components.
 
-Money uses signed-64-bit-range bigint paise. Future JSON serialization must use decimal strings, not floating-point conversion. No monetary records are persisted in this phase.
+Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Invoice, stock and sale-movement writes share a transaction. No cloud synchronization or Android APIs are included.
 
 ## Provenance
 
