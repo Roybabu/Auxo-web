@@ -1,0 +1,133 @@
+AUXO WEB — IMPLEMENTATION CHECKLIST
+====================================
+Status date: 2026-11-01
+Web repository: Roybabu/Auxo-web
+Working branch: genesis/fresh-start
+Android comparison reference: branch temp
+
+PURPOSE AND STATUS RULE
+-----------------------
+This checklist describes what remains to reach the relevant AUXO Android business
+functionality in the web app. “Implemented” means a web workflow or business
+service exists. It does not certify exact Android parity; those workflows still
+need side-by-side comparison against Android temp for calculations, validations,
+edge cases, and database relationships.
+
+COMPLETED WEB FOUNDATION
+------------------------
+[Done] React + TypeScript + Vite application foundation.
+[Done] Browser-local IndexedDB business storage and offline-first PWA setup.
+[Done] Modular domain, application/service, infrastructure/storage, and UI layers.
+[Done] Basic desktop-first navigation, reusable forms/tables, and role-guarded routes.
+[Done] Local login, employee accounts, permissions, account recovery, business setup,
+       and product-category setup workflows.
+[Done] Encrypted web backup download, inspection, and restore. This is an AUXO Web
+       backup format; Android backup-file interoperability is not implemented.
+
+BUSINESS WORKFLOWS PRESENT IN THE WEB APP
+-----------------------------------------
+[Implemented; parity audit remains] POS and restaurant billing, discounts, GST,
+       payment collection, held bills, item/payment splits, customer credit sales,
+       returns/credit notes, and invoice data/export.
+[Implemented; parity audit remains] Products, sellable variants, barcode/SKU checks,
+       inventory adjustments, batches/expiry tracking, stock counts, CSV product import,
+       and browser-printable barcode labels.
+[Implemented; parity audit remains] Customer creation during billing, account balances,
+       account payments, statements, and loyalty points/rules.
+[Implemented; parity audit remains] Suppliers, purchase orders, receiving stock,
+       receipts, and related inventory/cost updates.
+[Implemented; parity audit remains] All 13 report types: sales summary, item sales,
+       collections, GST rates, HSN summary, purchases, stock movements, wastage,
+       stock value, low stock, expiry, customer balances, and customer aging.
+[Implemented; parity audit remains] GST reports including buyer GSTIN/B2B classification.
+[Implemented; parity audit remains] Day-end closing and activity audit log, including
+       the business events previously reviewed for audit coverage.
+[Implemented; parity audit remains] Business settings, report CSV export, and encrypted
+       web backup/restore.
+
+CONFIRMED IMPLEMENTATION GAPS
+-----------------------------
+PRODUCTS AND INVENTORY
+[ ] Restaurant product availability (whether an item can be added to a bill).
+[ ] Restaurant products that do not track stock; the current web product type always
+    tracks stock and billing uses stock availability.
+[ ] Product subcategories, including restaurant menu sections.
+[ ] Electronics warranty duration.
+[ ] Pharmacy prescription-required flag.
+[ ] Jewellery metal and making-charge fields.
+[ ] Preferred supplier and reorder-quantity product fields.
+[ ] Product photos and per-colour photos.
+[ ] Full category-appropriate stock-unit selection and persistence where Android allows
+    a unit choice. The current web product model has narrower stock-unit support.
+[ ] Bring these additional Android product fields into create, edit, CSV/backup handling,
+    relevant billing/inventory views, and validation without losing existing data.
+
+BILLING AND DOCUMENTS
+[ ] Quotations: create/save, list/load, expiry/validity, repricing and conversion to sale.
+[ ] Desktop/browser receipt and invoice printing equivalent to Android document output,
+    including invoice, quotation, and credit-note layouts and print settings.
+    Android Bluetooth pairing/permission behavior remains excluded.
+[ ] Compare web checkout, restaurant table/token handling, payment validation, discounts,
+    GST rounding, invoice numbering, returns, and held/split bill edge cases against Android.
+
+CUSTOMERS
+[ ] Full customer management/list/detail/edit workflow beyond create-at-checkout and the
+    account-payment/statement page.
+[ ] Compare customer history, account statements, credit limits, loyalty earning/redemption,
+    returned-sale handling, and any Android reminder/share workflows.
+
+REPORTS, SECURITY, AND OPERATIONS
+[ ] Compare every report's Android formulas, date boundaries, filters, ordering, and empty
+    states; presence of all 13 report types alone does not prove formula parity.
+[ ] Compare Android role/permission matrix, password changes/resets, recovery, account
+    validation, and audit coverage for every business action.
+[ ] Compare day-end figures and close/reopen/duplicate-date rules against Android.
+[ ] Compare supplier, order, partial receiving, batch/cost updates, and receipt workflows
+    against Android, including failure/retry behavior.
+[ ] Review backup contents, restore validations, relationships, and loss-prevention behavior.
+    Android-specific backup file compatibility is not currently supported.
+
+OTHER ANDROID AREAS WITH NO CONFIRMED WEB EQUIVALENT
+----------------------------------------------------
+[ ] Dashboard/home insights and insight charts.
+[ ] Stock-alert screen and its alert rules/presentation (separate from the low-stock report).
+[ ] Invoice history/detail/reprint workflow comparison; confirm each Android action exists
+    in the web UI and print/export path.
+[ ] Customer editor/detail/history and shareable statement workflow comparison.
+[ ] Printer settings and receipt-format options for desktop/browser printing.
+
+FUNCTIONAL COMPLETION WORK
+--------------------------
+[ ] Finish a screen-by-screen comparison against Android temp for every relevant business
+    workflow, then replace any “parity audit remains” items above with verified status.
+[ ] Add parity tests for confirmed calculations, validation boundaries, and transaction
+    behavior as each area is audited and implemented.
+[ ] Exercise the PWA offline after first load and verify local data survives reload/restart.
+[ ] Verify backup/restore and data export with realistic, linked business records.
+
+STYLING AND RELEASE — NOT YET DONE
+----------------------------------
+[ ] Apply Concept 2 — Premium Dark Teal after the user provides the concept image.
+[ ] Desktop visual/accessibility review and browser compatibility pass.
+[ ] Production deployment/publishing is not part of the current branch implementation.
+
+EXPLICITLY OUT OF SCOPE (DO NOT IMPLEMENT)
+------------------------------------------
+- Android-only APIs and mobile-specific navigation/layouts.
+- Fingerprint, biometric, or Android PIN/quick-unlock behavior.
+- Android Bluetooth pairing or permission screens. Use web/desktop print paths instead.
+- Native Android update or installation functionality.
+- Cloud database or synchronization at this stage.
+- Windows/Linux application packaging at this stage.
+- Any features not present in the relevant AUXO Android reference.
+
+LATEST COMPLETED CHANGE
+-----------------------
+Product editing for currently represented web fields: details, GST/HSN, and variants.
+Saved products keep their category; existing variant IDs, on-hand stock, and batch data
+are preserved; removing a stocked variant is blocked; newly added variants record opening
+stock. This does not yet edit the specialty product fields listed above.
+
+Latest web commit: 588ea3a (published on genesis/fresh-start).
+Last recorded checks: typecheck passed, 85 tests passed, production build passed.
+The build reports a bundle-size warning above 500 kB; it does not fail the build.
