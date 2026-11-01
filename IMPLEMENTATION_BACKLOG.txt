@@ -59,7 +59,8 @@ PRODUCTS AND INVENTORY
       matching Android temp.
 [Done] Jewellery metal selection and optional making charge (0–100%, up to two decimal
       places), shown with the saved product.
-[ ] Preferred supplier and reorder-quantity product fields.
+[Done] Preferred supplier and per-variant reorder-quantity product fields. Supplier choices
+      are restricted to active suppliers; reorder amounts follow the product's stock unit.
 [ ] Product photos and per-colour photos.
 [ ] Full category-appropriate stock-unit selection and persistence where Android allows
     a unit choice. The current web product model has narrower stock-unit support.
@@ -133,6 +134,6 @@ warranty duration in whole months (1–120) through create/edit, display, and we
 validation. The value remains null for other categories and older products/backups.
 Other specialty product fields are still pending.
 
-Latest web commit: Jewellery metal and making charge fields.
-Checks for these changes: typecheck passed; 24 test files / 95 tests passed; production
+Latest web commit: Preferred supplier and reorder-quantity product fields.
+Checks for these changes: typecheck passed; 24 test files / 97 tests passed; production
 build passed. The build reports a bundle-size warning above 500 kB; it does not fail.
