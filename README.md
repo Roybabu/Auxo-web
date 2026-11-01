@@ -16,9 +16,9 @@ npm run build
 
 The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. Products and inventory support product variants, category checks, barcode/SKU validation, GST-rate assignment, opening stock, manual stock changes, and movement history.
 
-The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit payments update the customer balance and account ledger in the sale transaction.
+The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit sales and later account repayments update the customer balance and ledger. A customer account screen shows the running statement and accepts cash, UPI or card repayments.
 
-This is not ready for live transactions. Customer account payments/statements, employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
+This is not ready for live transactions. Employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
 
 Premium styling, desktop packaging, cloud services and synchronization are deferred. No Android-specific APIs, biometric/PIN login, Bluetooth or installer logic is included.
 

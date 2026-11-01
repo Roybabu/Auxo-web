@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateBill, validatePayments, type CartLine, type TaxSettings } from './billing';
+import { calculateBill, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
 
 const settings:TaxSettings={gstRegistered:true,pricesIncludeTax:true,roundOff:true,stateCode:'19',invoicePrefix:'INV',storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5'};
 const line=(price:string,rate:number|null=1800,extra:Partial<CartLine>={}):CartLine=>({productId:'p1',variantId:'v1',name:'Item',variantLabel:'',barcode:'',quantity:1,unitPricePaise:price,mrpPaise:null,stockUnit:'UNIT',availableStock:10,gstRateBasisPoints:rate,apparelGst:false,lineDiscount:null,...extra});
@@ -32,5 +32,12 @@ describe('Android POS tax and discount calculations',()=>{
     const customer={id:'c1',name:'Customer',phone:null,creditLimitPaise:'3000',balancePaise:'1000',onHold:false,createdAt:1};
     expect(()=>validatePayments([{method:'CREDIT',amount:'21',reference:'',tendered:''}],2100n,customer)).toThrow(/credit limit/);
     expect(validatePayments([{method:'CREDIT',amount:'20',reference:'',tendered:''}],2000n,customer)[0]?.method).toBe('CREDIT');
+  });
+  it('checks account repayments against due balance and method references',()=>{
+    expect(validateAccountPayment({amount:'25',method:'CASH',reference:'',note:'Paid at counter'},5000n)).toEqual({amountPaise:'2500',method:'CASH',reference:null,note:'Paid at counter'});
+    expect(()=>validateAccountPayment({amount:'51',method:'CASH',reference:'',note:''},5000n)).toThrow(/more than/);
+    expect(()=>validateAccountPayment({amount:'10',method:'UPI',reference:'bad',note:''},5000n)).toThrow(/UPI reference/);
+    expect(()=>validateAccountPayment({amount:'',method:'CASH',reference:'',note:''},5000n)).toThrow(/amount/);
+    expect(()=>validateAccountPayment({amount:'1',method:'CASH',reference:'',note:''},0n)).toThrow(/no outstanding balance/);
   });
 });

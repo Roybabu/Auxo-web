@@ -8,6 +8,7 @@ import { Pending, Table } from './primitives';
 import { ShopPage } from './ShopPage';
 import { InventoryPage, ProductsPage } from './CatalogPages';
 import { SalesPage } from './SalesPage';
+import { CustomerAccountsPage } from './CustomerAccountsPage';
 const database = new LocalDatabase();
 const service = new ShopService(database);
 const catalog = new CatalogService(database);
@@ -19,8 +20,9 @@ export default function App() {
     <NavLink to="/reports">Reports</NavLink><NavLink to="/settings">Settings</NavLink>
   </nav></aside><main><Routes>
     <Route path="/" element={<section><h1>AUXO Web</h1><p>A fresh workspace for your business.</p><p>This is the first foundation build. Business settings can be saved locally. Billing and the other modules are not available yet.</p><NavLink className="action" to="/settings">Set up store details</NavLink></section>}/>
-    {modules.filter(([path])=>path!=='products'&&path!=='inventory'&&path!=='pos').map(([path,label])=><Route key={path} path={`/${path}`} element={<Pending title={label}/>}/>)}
+    {modules.filter(([path])=>path!=='products'&&path!=='inventory'&&path!=='pos'&&path!=='customers').map(([path,label])=><Route key={path} path={`/${path}`} element={<Pending title={label}/>}/>)}
     <Route path="/pos" element={<SalesPage sales={sales} shops={service}/>}/>
+    <Route path="/customers" element={<CustomerAccountsPage sales={sales}/>}/>
     <Route path="/products" element={<ProductsPage service={catalog}/>}/>
     <Route path="/inventory" element={<InventoryPage service={catalog}/>}/>
     <Route path="/settings" element={<ShopPage service={service}/>}/>

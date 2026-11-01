@@ -1,15 +1,16 @@
-import { calculateBill, validatePayments, type BillingCustomer, type CartLine, type CustomerLedgerEntry, type DiscountDraft, type InvoiceRecord, type PaymentDraft, type TaxSettings } from '../domain/billing';
+import { calculateBill, validateAccountPayment, validatePayments, type AccountPaymentDraft, type BillingCustomer, type CartLine, type CustomerLedgerEntry, type DiscountDraft, type InvoiceRecord, type PaymentDraft, type TaxSettings } from '../domain/billing';
 import type { Product } from '../domain/catalog';
 import { parseMoney } from '../domain/money';
 import type { ShopStorage } from './shopService';
 
-export interface SalesStorage { listProducts():Promise<Product[]>; listInvoices():Promise<InvoiceRecord[]>; listCustomers():Promise<BillingCustomer[]>; listCustomerLedger(customerId:string):Promise<CustomerLedgerEntry[]>; createCustomer(customer:BillingCustomer):Promise<void>; saveSale(draft:Omit<InvoiceRecord,'id'|'number'|'createdAt'>,prefix:string,date:Date):Promise<InvoiceRecord> }
+export interface SalesStorage { listProducts():Promise<Product[]>; listInvoices():Promise<InvoiceRecord[]>; listCustomers():Promise<BillingCustomer[]>; listCustomerLedger(customerId:string):Promise<CustomerLedgerEntry[]>; createCustomer(customer:BillingCustomer):Promise<void>; recordAccountPayment(customerId:string,payment:ReturnType<typeof validateAccountPayment>,date:Date):Promise<CustomerLedgerEntry>; saveSale(draft:Omit<InvoiceRecord,'id'|'number'|'createdAt'>,prefix:string,date:Date):Promise<InvoiceRecord> }
 export class SalesService {
   constructor(private readonly storage:SalesStorage,private readonly shops:ShopStorage){}
   listProducts(){return this.storage.listProducts()}
   listInvoices(){return this.storage.listInvoices()}
   listCustomers(){return this.storage.listCustomers()}
   listCustomerLedger(customerId:string){return this.storage.listCustomerLedger(customerId)}
+  async receiveAccountPayment(customerId:string,draft:AccountPaymentDraft){const customer=(await this.storage.listCustomers()).find(c=>c.id===customerId);if(!customer)throw new Error('Customer account no longer exists.');const payment=validateAccountPayment(draft,BigInt(customer.balancePaise));return this.storage.recordAccountPayment(customerId,payment,new Date());}
   async createCustomer(nameText:string,phoneText:string,creditLimitText:string){
     const name=nameText.trim();if(name.length<1||name.length>80)throw new Error('Customer name is required and must be 80 characters or fewer.');
     const phone=phoneText.trim()?normalizeMobile(phoneText):null;if(phoneText.trim()&&!phone)throw new Error('Enter a valid Indian 10-digit mobile number.');
