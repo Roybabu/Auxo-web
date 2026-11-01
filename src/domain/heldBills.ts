@@ -2,7 +2,7 @@ import type { CartLine, DiscountDraft } from './billing';
 import { parseMoney } from './money';
 
 export const DEFAULT_TABLES=10,MAX_TABLES=99,LABEL_MAX=40,STALE_HOURS=2;
-export type HeldBill={id:string;label:string;createdAt:number;updatedAt:number;itemCount:number;totalPaise:string;tableNumber:number|null;tokenNumber:number|null;lines:CartLine[];discount:DiscountDraft;interState:boolean;customerId:string};
+export type HeldBill={id:string;label:string;createdAt:number;updatedAt:number;itemCount:number;totalPaise:string;tableNumber:number|null;tokenNumber:number|null;lines:CartLine[];discount:DiscountDraft;interState:boolean;customerId:string;buyerName?:string;buyerPhone?:string;buyerGstin?:string};
 export type HeldBillDraft=Omit<HeldBill,'id'|'createdAt'|'updatedAt'|'tokenNumber'>;
 export type SplitSelection={remaining:CartLine[];moved:CartLine[]};
 export function cleanHeldLabel(label:string){return label.replace(/\s+/g,' ').trim().slice(0,LABEL_MAX);}
