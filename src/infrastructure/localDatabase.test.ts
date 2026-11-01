@@ -30,6 +30,13 @@ it('keeps prior data when validation fails',async()=>{
   expect((await service.load())?.storeName).toBe('Keep');
   await db.close();
 });
+it('updates product details without changing stock, and prevents removing a stocked variant',async()=>{
+  const db=new LocalDatabase('test-product-edit'),now=Date.now();
+  const product:Product={id:'edit-product',name:'Tea',category:'GENERAL',categoryId:'GENERAL',brand:null,gstRateBasisPoints:null,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'edit-variant',size:'',colour:'',sku:'TEA',barcode:'',price:'10.00',mrp:'',cost:'',opening:'5',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:5,lowStockThreshold:0}]};
+  await db.saveProduct(product,[]);await db.updateProduct({...product,name:'Updated tea',updatedAt:now+100,variants:[{...product.variants[0]!,price:'12.00',pricePaise:'1200',stock:999,opening:'999'}]},[]);
+  expect((await db.listProducts())[0]).toMatchObject({name:'Updated tea',createdAt:now,variants:[{id:'edit-variant',pricePaise:'1200',stock:5}]});
+  await expect(db.updateProduct({...product,variants:[]},[])).rejects.toThrow(/stock on hand/);expect((await db.listProducts())[0]?.variants).toHaveLength(1);await db.close();
+});
 it('saves invoice, sale movement and stock deduction atomically',async()=>{
   const db=new LocalDatabase('test-sale-atomic');const now=Date.now();
   const product:Product={id:'p1',name:'Tea',category:'GENERAL',brand:null,gstRateBasisPoints:500,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'v1',size:'',colour:'',sku:'TEA',barcode:'',price:'10.00',mrp:'',cost:'',opening:'5',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:5,lowStockThreshold:0}]};
