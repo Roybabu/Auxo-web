@@ -13,13 +13,11 @@ import type { PurchasingStorage } from '../application/purchasingService';
 import { LocalDatabase } from './localDatabase';
 import type {LoyaltyRules} from '../domain/loyalty';
 import type {StockBatch} from '../domain/batches';
-import type {AuditAction,AuditEntity} from '../domain/audit';
 import {formatMoney} from '../domain/money';
 
 /** The UI and business services receive this boundary, never the raw browser store. */
 export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorage,PurchasingStorage {
   constructor(private readonly raw:LocalDatabase,private readonly auth:AuthService){}
-  private async log(action:AuditAction,entityType:AuditEntity,entityId:string|null,summary:string){const user=this.auth.getSnapshot();await this.raw.recordAudit(user?{id:user.id,name:user.name,role:user.role}:null,action,entityType,entityId,summary);}
   async load(){await this.auth.require('SELL');return this.raw.load();}
   async save(shop:ShopIdentity){await this.auth.require('MANAGE_SETTINGS');const before=await this.raw.load();const changed:string[]=[];if(before?.storeName!==shop.storeName)changed.push('business name');if(before?.address!==shop.address)changed.push('address');if(before?.gstin!==shop.gstin)changed.push('store GSTIN');if(before?.stateCode!==shop.stateCode)changed.push('GST state');if(before?.gstRegistered!==shop.gstRegistered)changed.push('GST registration');if(before?.pricesIncludeTax!==shop.pricesIncludeTax)changed.push('tax-inclusive pricing');if(before?.roundOff!==shop.roundOff)changed.push('round-off setting');if(before?.employeeDiscountLimitBp!==shop.employeeDiscountLimitBp)changed.push('employee discount limit');if(before?.tableCount!==shop.tableCount)changed.push('restaurant table count');if(before?.onTimeBonusPoints!==shop.onTimeBonusPoints)changed.push('on-time bonus');const user=this.auth.getSnapshot();await this.raw.save(shop,{actor:user,action:'SETTINGS_SAVED',entityType:'settings',entityId:null,summary:`Saved business settings for ${shop.storeName}${changed.length?`: updated ${changed.join(', ')}`:''}`});}
   async listProducts(){await this.auth.require('SELL');return this.raw.listProducts();}
@@ -52,11 +50,11 @@ export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorag
   }
   async listProductsForPurchasing(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listProducts();}
   async listSuppliers(){await this.auth.require('MANAGE_SUPPLIERS');return this.raw.listSuppliers();}
-  async saveSupplier(supplier:Supplier){await this.auth.require('MANAGE_SUPPLIERS');await this.raw.saveSupplier(supplier);await this.log('SUPPLIER_SAVED','supplier',supplier.id,`Saved supplier ${supplier.name}`);}
+  async saveSupplier(supplier:Supplier){await this.auth.require('MANAGE_SUPPLIERS');const user=this.auth.getSnapshot();await this.raw.saveSupplier(supplier,{actor:user,action:'SUPPLIER_SAVED',entityType:'supplier',entityId:supplier.id,summary:`Saved supplier ${supplier.name}`});}
   async listPurchaseOrders(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listPurchaseOrders();}
-  async savePurchaseOrder(order:Omit<PurchaseOrder,'id'|'number'|'createdAt'>,id?:string){await this.auth.require('MANAGE_PURCHASES');const saved=await this.raw.savePurchaseOrder(order,id);await this.log('ORDER_SAVED','purchase_order',saved.id,`Saved ${saved.number} for ${saved.supplierName}`);return saved;}
-  async updatePurchaseStatus(id:string,status:PurchaseStatus){await this.auth.require('MANAGE_PURCHASES');const changed=await this.raw.updatePurchaseStatus(id,status);if(changed)await this.log('ORDER_STATUS_CHANGED','purchase_order',id,`Purchase order marked ${status.toLowerCase()}`);return changed;}
+  async savePurchaseOrder(order:Omit<PurchaseOrder,'id'|'number'|'createdAt'>,id?:string){await this.auth.require('MANAGE_PURCHASES');const user=this.auth.getSnapshot();return this.raw.savePurchaseOrder(order,id,saved=>({actor:user,action:'ORDER_SAVED',entityType:'purchase_order',entityId:saved.id,summary:`Saved ${saved.number} for ${saved.supplierName}`}));}
+  async updatePurchaseStatus(id:string,status:PurchaseStatus){await this.auth.require('MANAGE_PURCHASES');const user=this.auth.getSnapshot();return this.raw.updatePurchaseStatus(id,status,{actor:user,action:'ORDER_STATUS_CHANGED',entityType:'purchase_order',entityId:id,summary:`Purchase order marked ${status.toLowerCase()}`});}
   async listPurchaseReceipts(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listPurchaseReceipts();}
-  async receivePurchase(receipt:Omit<PurchaseReceipt,'id'|'number'|'receivedAt'>,date?:number){await this.auth.require('RECEIVE_GOODS');const saved=await this.raw.receivePurchase(receipt,date);await this.log('GOODS_RECEIVED','purchase_receipt',saved.id,`Received goods ${saved.number}`);return saved;}
+  async receivePurchase(receipt:Omit<PurchaseReceipt,'id'|'number'|'receivedAt'>,date?:number){await this.auth.require('RECEIVE_GOODS');const user=this.auth.getSnapshot();return this.raw.receivePurchase(receipt,date,saved=>({actor:user,action:'GOODS_RECEIVED',entityType:'purchase_receipt',entityId:saved.id,summary:`Received goods ${saved.number}`}));}
   async saveReturn(invoiceId:string,quantities:number[],method:RefundMethod,reason:string,prefix:string,date:Date){await this.auth.require('PROCESS_RETURN');const user=this.auth.getSnapshot();return this.raw.saveReturn(invoiceId,quantities,method,reason,prefix,date,credit=>({actor:user,action:'RETURN_RECORDED',entityType:'invoice',entityId:credit.id,summary:`Credit note ${credit.number}, total ${formatMoney(BigInt(credit.grandTotalPaise))}`}));}
 }
