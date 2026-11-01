@@ -100,6 +100,14 @@ it('uses the selected category profile and preserves the category relation on pr
  expect(product.category).toBe('PACKAGED_FOOD');expect(product.categoryId).toBe(category.id);await expect(db.deleteCategory(category.id,auth.getSnapshot())).rejects.toThrow(/products still use/i);await db.close();
 });
 
+it('requires a category at first setup and records the chosen set atomically',async()=>{
+ const db=new LocalDatabase(`category-setup-${crypto.randomUUID()}`),auth=new AuthService(db);await auth.setup('Owner','owner.category-setup','Strong-Password-987','Strong-Password-987');
+ expect(await db.needsCategorySetup()).toBe(true);const categories=await db.listCategories(),chosen=categories.filter(row=>row.profile==='GARMENT'||row.profile==='PHARMACY').map(row=>row.id);
+ await expect(db.applyCategorySetup(new Set(),auth.getSnapshot())).rejects.toThrow(/at least one/i);expect(await db.needsCategorySetup()).toBe(true);
+ await db.applyCategorySetup(new Set(chosen),auth.getSnapshot());expect(await db.needsCategorySetup()).toBe(false);expect((await db.listCategories()).filter(row=>row.enabled).map(row=>row.profile).sort()).toEqual(['GARMENT','PHARMACY']);
+ expect((await db.listRecentAudit()).find(row=>row.action==='CATEGORIES_CHANGED')).toMatchObject({summary:'Categories chosen during setup',entityType:'category',entityId:null});await db.close();
+});
+
 it('rolls back a new administrator account when its sign-in audit fails',async()=>{
  const db=new LocalDatabase(`audit-account-rollback-${crypto.randomUUID()}`),auth=new AuthService(db),collision='00000000-0000-4000-8000-000000000031';
  const random=vi.spyOn(crypto,'randomUUID').mockReturnValue(collision);

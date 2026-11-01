@@ -29,6 +29,7 @@ import {StockCountService} from '../application/stockCountService';
 import {StockCountPage} from './StockCountPage';
 import {CategoryService} from '../application/categoryService';
 import {CategoriesPage} from './CategoriesPage';
+import {CategorySetupPage} from './CategorySetupPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured),sales=new SalesService(secured,secured);
@@ -40,14 +41,17 @@ const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['resta
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
 export default function App(){
-  const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
+  const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[needsCategorySetup,setNeedsCategorySetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
   useEffect(()=>{auth.needsSetup().then(setSetup).catch(e=>setBootError(e instanceof Error?e.message:'Local accounts could not be opened.'));},[]);
+  useEffect(()=>{if(!user){setNeedsCategorySetup(false);return;}categories.needsSetup().then(setNeedsCategorySetup).catch(e=>setBootError(e instanceof Error?e.message:'Local categories could not be opened.'));},[user?.id]);
   useEffect(()=>{const onRestore=(event:StorageEvent)=>{if(event.key==='auxo-genesis-restored')void auth.signOut().catch(()=>{});};window.addEventListener('storage',onRestore);return()=>window.removeEventListener('storage',onRestore);},[]);
   useEffect(()=>{if(user)setSetup(false);},[user]);
   if(bootError)return <main className="auth-screen"><section><h1>Local data unavailable</h1><p role="alert">{bootError}</p></section></main>;
   if(setup===null)return <main className="auth-screen"><section>Opening local accounts…</section></main>;
   if(!user)return <AuthPage auth={auth} setup={setup}/>;
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
+  if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
+  if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;
   return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button><nav aria-label="Main navigation">
     <NavLink to="/" end>Overview</NavLink>{modules.filter(([, ,permission])=>auth.can(permission)).map(([path,label])=><NavLink key={path} to={`/${path}`}>{label}</NavLink>)}
     {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/categories">Product categories</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
