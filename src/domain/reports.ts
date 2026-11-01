@@ -1,4 +1,4 @@
-// Inventory from Android temp domain/reports/ReportModel.kt; builders are not implemented.
+// Report identifiers and period/current-position behavior from Android temp.
 export const reports = [
   ['SALES_SUMMARY', 'Sales summary', true], ['ITEM_SALES', 'Item sales', true],
   ['COLLECTIONS', 'Collections', true], ['GST_RATES', 'GST rates', true],

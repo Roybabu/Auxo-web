@@ -3,6 +3,7 @@ import { expect, it } from 'vitest';
 import { LocalDatabase } from './localDatabase';
 import { ShopService } from '../application/shopService';
 import type { Product } from '../domain/catalog';
+import {buildDayFigures} from '../domain/dayEnd';
 it('commits store details and reloads them through a new connection',async()=>{
   const name = 'test-persistence';
   const db = new LocalDatabase(name);
@@ -13,6 +14,13 @@ it('commits store details and reloads them through a new connection',async()=>{
   const reopened = new LocalDatabase(name);
   expect(await reopened.load()).toEqual({storeName:'Example',address:'Road'});
   await reopened.close();
+});
+it('saves one immutable day closing per business date and includes it in snapshots',async()=>{
+  const db=new LocalDatabase('test-day-close');const date='2026-11-01';
+  const closing={figures:buildDayFigures(date,[],[]),countedCashPaise:'0',note:null,closedAt:Date.now(),closedBy:'admin'};
+  const first=await db.closeDay(closing),second=await db.closeDay({...closing,countedCashPaise:'500',closedBy:'cashier'});
+  expect(first.alreadyClosed).toBe(false);expect(second.alreadyClosed).toBe(true);expect(second.closing).toEqual(first.closing);
+  expect((await db.snapshot()).dayClosings).toEqual([first.closing]);await db.close();
 });
 it('keeps prior data when validation fails',async()=>{
   const db = new LocalDatabase('test-validation');

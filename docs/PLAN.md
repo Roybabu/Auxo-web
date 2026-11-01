@@ -26,6 +26,7 @@ Relevant foundation sources inspected (under app/src/main/java/com/auxo/pos):
 9. Manual web backup/restore: Super Admin exports passphrase-encrypted snapshots, inspects an encrypted file before restoring, and atomically replaces business and account stores. The web format is separate from Android's native database archive.
 10. Restaurant billing: table-held bills, token allocation, stale bill indication, resume/discard without stock reservation, item split with proportional fixed discounts, and equal payment shares.
 11. Suppliers and purchases: validated supplier records, draft/edit/order/cancel lifecycle, financial-year PO and GRN numbering, partial/full/direct receiving, duplicate supplier invoice prevention, atomic stock movements/cost updates, recorded batch/expiry fields, and purchase backup/restore.
+12. Reports and day-end: 13 report builders, date filters, GST summary/rate/HSN/segment/document tables, CSV export, cash reconciliation, unique immutable daily closing and history.
 
 Sources used for the POS and account slice include `domain/billing/BillCalculator.kt`, `Cart.kt`, `Discount.kt`, `DiscountPolicy.kt`, `CartValidator.kt`, `Payments.kt`, `InvoiceNumbers.kt`, `domain/customers/Ledger.kt`, `domain/model/GstRate.kt`, `StockUnit.kt`, `billing/Identifiers.kt`, `billing/SettingsValidator.kt`, `domain/model/Customer.kt`, `domain/contacts/ContactForms.kt`, and `domain/usecase/BillingUseCases.kt`.
 
@@ -36,7 +37,7 @@ Sources used for the POS and account slice include `domain/billing/BillCalculato
 3. POS billing: cart, tax, line/bill discounts, split payment, invoice detail and account-credit sale.
 4. Complete billing: enforce employee discount limits, custom GST rates and HSN; add returns/refunds and receipt generation; add login and service-level permissions before operational use.
 5. Restaurant held/split bills and supplier purchase/receiving workflows.
-6. Loyalty, all 13 reports, GST exports, day-end closing, receipts and exports.
+6. Loyalty, receipt printing, invoice exports and the remaining business capabilities.
 7. End-to-end offline/install/update acceptance, then the user's strict Concept 2 design reference.
 
 Each phase must have source references, tests, explicit remaining gaps and a separate commit. Never infer feature completion from the existence of a route.
@@ -44,10 +45,10 @@ Each phase must have source references, tests, explicit remaining gaps and a sep
 ## Current limits
 
 - PWA assets are generated; offline reload/install/update behavior requires browser acceptance testing. App updates must not interrupt unfinished bills.
-- IndexedDB schema is version 8 and stores business settings, products, stock movements, invoices, customers and ledger, local accounts, held bills, suppliers, purchase orders and goods receipts. Further stores must use explicit schema upgrades.
+- IndexedDB schema is version 9 and stores business settings, products, stock movements, invoices, customers and ledger, local accounts, held bills, suppliers, purchase orders, goods receipts and day closings. Further stores must use explicit schema upgrades.
 - No old-web data migration. The new database name is `auxo-genesis-v1`.
 - Sessions are memory-only, so a reload requires password sign-in. The administrator recovery code is shown only when created or rotated and must be stored separately from the browser. Restoring replaces account passwords and recovery proof too: sign in with the credentials from that backup. Manual backups are limited to 100 MB; automatic scheduling, activity audit, and browser acceptance testing remain incomplete. The first person opening an existing prototype data store after this upgrade creates its local administrator. This is a development skeleton, not an operational POS.
 - Origin/profile changes do not transfer local data. Encrypted backup/restore is implemented; automatic backup scheduling is not.
 - GitHub CLI push is unavailable in this workspace; commits are published through the connected GitHub repository access and verified against the branch ref.
-- POS supports line and bill discounts, account-credit sales with saved customers, standard/custom GST rates (plus the Android apparel/footwear slab), optional HSN, cash/UPI/card payments and returns/refunds. Customer accounts support repayments and running statements. Employee roles, permissions and discount limits are enforced through the authorized storage boundary. Admin recovery is supported with a one-time rotating code; invoice print/export and browser-level offline acceptance are pending. Restaurant and purchasing workflows are implemented with tests; per-batch inventory costing/expiry alerts remain incomplete.
+- POS supports line and bill discounts, account-credit sales with saved customers, standard/custom GST rates (plus the Android apparel/footwear slab), optional HSN, cash/UPI/card payments and returns/refunds. Customer accounts support repayments and running statements. Employee roles, permissions and discount limits are enforced through the authorized storage boundary. Admin recovery is supported with a one-time rotating code; invoice print/export and browser-level offline acceptance are pending. Restaurant and purchasing workflows are implemented with tests; per-batch on-hand inventory and buyer GSTIN are not stored, so expiry stock-on-hand and B2B GST classification remain incomplete. Wastage report currently reflects damaged-stock movements only.
 - Earlier prototype invoices do not store whether rupee round-off was enabled. Automated returns for those invoices are blocked rather than guessing a refund rule.
