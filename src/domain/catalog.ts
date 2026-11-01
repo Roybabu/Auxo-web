@@ -74,6 +74,7 @@ export function validateProduct(input:ProductInput, existing:readonly Product[])
 }
 export function formatNetQuantity(quantity:NetQuantity|undefined|null){if(!quantity)return '';const unit:Record<QuantityUnit,string>={GRAM:'g',KILOGRAM:'kg',MILLILITRE:'ml',LITRE:'L',PIECE:'pcs'};return `${(quantity.amountMilli/1000).toString()} ${unit[quantity.unit]}`;}
 export function defaultPackUnit(category:ProductCategory):QuantityUnit|'' {return (PRODUCT_CATEGORIES[category].netUnits as readonly QuantityUnit[])[0]??'';}
+export function defaultProductTax(category:ProductCategory):Pick<ProductInput,'gstRateBasisPoints'|'apparelGst'> {if(category==='GARMENT'||category==='FOOTWEAR')return {gstRateBasisPoints:null,apparelGst:true};if(category==='RESTAURANT')return {gstRateBasisPoints:500,apparelGst:false};return {gstRateBasisPoints:null,apparelGst:false};}
 export function variantAttributesLabel(variant:Pick<ProductVariant,'size'|'colour'|'netQuantity'>,separator=' · '){return [variant.size,variant.colour,formatNetQuantity(variant.netQuantity)].filter(Boolean).join(separator);}
 export type MovementReason='INITIAL'|'RECEIVED'|'RETURNED'|'SOLD'|'DAMAGED'|'EXPIRED'|'SPOILED'|'CORRECTION';
 export interface StockMovement {id:string;variantId:string;quantityChange:number;reason:MovementReason;note:string|null;createdAt:number;batchId?:string|null;invoiceId?:string|null;sourceInvoiceId?:string|null}
