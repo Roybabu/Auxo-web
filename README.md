@@ -16,9 +16,9 @@ npm run build
 
 The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. Products and inventory support product variants, category checks, barcode/SKU validation, GST-rate assignment, opening stock, manual stock changes, and movement history.
 
-The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit sales and later account repayments update the customer balance and ledger. A customer account screen shows the running statement and accepts cash, UPI or card repayments.
+The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit sales and later account repayments update the customer balance and ledger. A customer account screen shows the running statement and accepts cash, UPI or card repayments. Item returns create numbered credit notes, restore stock, and calculate cumulative refunds from original invoice values. Refunds can be recorded as cash, UPI, card or customer-account credit; an original split credit sale settles its proportional account share first.
 
-This is not ready for live transactions. Employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
+This is not ready for live transactions. Employee discount permissions, custom GST rates, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Earlier prototype invoices lack a saved round-off setting and are blocked from automated returns because their refund cannot be reliably calculated. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
 
 Premium styling, desktop packaging, cloud services and synchronization are deferred. No Android-specific APIs, biometric/PIN login, Bluetooth or installer logic is included.
 
@@ -29,7 +29,7 @@ Premium styling, desktop packaging, cloud services and synchronization are defer
 - `src/infrastructure`: browser IndexedDB implementation.
 - `src/ui`: pages, navigation and reusable presentation components.
 
-Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Invoice, stock, sale-movement, customer-balance and account-ledger writes share a transaction. No cloud synchronization or Android APIs are included.
+Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Each sale or return updates its invoices, stock, movements, customer balance and account ledger in one transaction. No cloud synchronization or Android APIs are included.
 
 ## Provenance
 

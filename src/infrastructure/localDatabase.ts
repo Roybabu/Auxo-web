@@ -5,6 +5,7 @@ import type { CatalogStorage } from '../application/catalogService';
 import type { MovementReason, Product, StockMovement } from '../domain/catalog';
 import type { BillingCustomer, CustomerLedgerEntry, InvoiceRecord } from '../domain/billing';
 import type { SalesStorage } from '../application/salesService';
+import { buildReturn, type RefundMethod } from '../domain/returns';
 interface GenesisSchema extends DBSchema {
   shop: { key: string; value: ShopIdentity };
   products: { key: string; value: Product };
@@ -67,6 +68,21 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
     const invoice:InvoiceRecord={...draft,id:crypto.randomUUID(),number,createdAt:date.getTime()};await invoices.add(invoice);
     if(customer&&creditPaid>0n){await customerStore.put({...customer,balancePaise:(BigInt(customer.balancePaise)+creditPaid).toString()});for(const payment of draft.payments.filter(p=>p.method==='CREDIT'))await tx.objectStore('customerLedger').add({id:crypto.randomUUID(),customerId:customer.id,type:'SALE',amountPaise:payment.amountPaise,invoiceId:invoice.id,invoiceNumber:invoice.number,method:'CREDIT',reference:null,createdAt:date.getTime(),note:'Sale on account'});}
     await tx.done;return invoice;
+  }
+  async saveReturn(invoiceId:string,quantities:number[],method:RefundMethod,reason:string,prefix:string,date:Date):Promise<InvoiceRecord>{
+    const db=await this.connect();const tx=db.transaction(['invoices','products','movements','customers','customerLedger'],'readwrite');const invoices=tx.objectStore('invoices');const original=await invoices.get(invoiceId);
+    if(!original){await tx.done;throw new Error('Invoice no longer exists.');}
+    let result:ReturnType<typeof buildReturn>;try{result=buildReturn(original,quantities,method,reason);}catch(error){await tx.done;throw error;}
+    const products=await tx.objectStore('products').getAll();const updates=new Map<string,Product>();
+    for(const line of result.creditNote.lines){const product=products.find(p=>p.variants.some(v=>v.id===line.variantId));if(!product){await tx.done;throw new Error(`${line.name} is no longer in inventory.`);}const current=updates.get(product.id)??product;updates.set(product.id,{...current,variants:current.variants.map(v=>v.id===line.variantId?{...v,stock:v.stock+line.quantity}:v),updatedAt:date.getTime()});}
+    let customer:BillingCustomer|undefined;if(result.accountCredit>0n){customer=original.customer?await tx.objectStore('customers').get(original.customer.id):undefined;if(!customer){await tx.done;throw new Error('Customer account no longer exists.');}}
+    const prior=await invoices.getAll();const year=date.getFullYear()-(date.getMonth()<3?1:0);const label=`${String(year%100).padStart(2,'0')}-${String((year+1)%100).padStart(2,'0')}`;const number=`${prefix}/${label}/${String(prior.filter(i=>i.number.startsWith(`${prefix}/${label}/`)).length+1).padStart(5,'0')}`;
+    const note:InvoiceRecord={...result.creditNote,id:crypto.randomUUID(),number,createdAt:date.getTime()};
+    await invoices.put({...original,lines:original.lines.map((line,i)=>({...line,returnedQuantity:result.returned[i]}))});for(const product of updates.values())await tx.objectStore('products').put(product);
+    for(const line of note.lines)await tx.objectStore('movements').add({id:crypto.randomUUID(),variantId:line.variantId,quantityChange:line.quantity,reason:'RETURNED',note:note.number,createdAt:date.getTime()});
+    await invoices.add(note);
+    if(customer&&result.accountCredit>0n){await tx.objectStore('customers').put({...customer,balancePaise:(BigInt(customer.balancePaise)-result.accountCredit).toString()});await tx.objectStore('customerLedger').add({id:crypto.randomUUID(),customerId:customer.id,type:'RETURN',amountPaise:(-result.accountCredit).toString(),invoiceId:note.id,invoiceNumber:note.number,method:'CREDIT',reference:null,createdAt:date.getTime(),note:'Return credited to account'});}
+    await tx.done;return note;
   }
   async close() {
     if (this.connection) (await this.connection).close();

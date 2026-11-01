@@ -18,6 +18,7 @@ Relevant foundation sources inspected (under app/src/main/java/com/auxo/pos):
 2. Products and inventory initial slice: category and variant validation, SKU/barcode checks, standard GST and apparel slab selection, opening stock, manual adjustments and movement history.
 3. POS billing slice: cart, quantity controls, line and bill discounts, GST calculation, cash/UPI/card split payment validation, financial-year invoice numbering, invoice detail/history and atomic invoice/stock/movement persistence. Saved customer accounts, credit limits, on-account payments and sale ledger entries are also supported.
 4. Customer accounts initial slice: cash/UPI/card repayments, due-balance validation, atomic balance/ledger updates, and a chronological running statement.
+5. Returns initial slice: partial and full credit notes, original-invoice rounding and cumulative refund allocation, proportional account refunds, stock restoration, and customer-ledger entries in one transaction.
 
 Sources used for the POS and account slice include `domain/billing/BillCalculator.kt`, `Cart.kt`, `Discount.kt`, `DiscountPolicy.kt`, `CartValidator.kt`, `Payments.kt`, `InvoiceNumbers.kt`, `domain/customers/Ledger.kt`, `domain/model/GstRate.kt`, `StockUnit.kt`, `billing/Identifiers.kt`, `billing/SettingsValidator.kt`, `domain/model/Customer.kt`, `domain/contacts/ContactForms.kt`, and `domain/usecase/BillingUseCases.kt`.
 
@@ -41,4 +42,5 @@ Each phase must have source references, tests, explicit remaining gaps and a sep
 - No authentication yet. This is a development skeleton, not an operational POS.
 - Origin/profile changes do not transfer local data. Backup/restore is not yet implemented.
 - GitHub CLI push is unavailable in this workspace; commits are published through the connected GitHub repository access and verified against the branch ref.
-- POS supports line and bill discounts, account-credit sales with saved customers, standard GST rates (plus the Android apparel/footwear slab), and cash/UPI/card payments. Customer accounts support repayments and running statements. Employee discount limits, custom GST, HSN, returns/refunds, invoice print/export, and browser-level offline acceptance are pending.
+- POS supports line and bill discounts, account-credit sales with saved customers, standard GST rates (plus the Android apparel/footwear slab), cash/UPI/card payments and returns/refunds. Customer accounts support repayments and running statements. Employee discount limits, custom GST, HSN, invoice print/export, and browser-level offline acceptance are pending.
+- Earlier prototype invoices do not store whether rupee round-off was enabled. Automated returns for those invoices are blocked rather than guessing a refund rule.

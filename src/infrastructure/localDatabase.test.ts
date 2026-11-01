@@ -44,3 +44,21 @@ it('records a credit sale on the customer ledger and enforces the limit atomical
   await db.recordAccountPayment('c1',{amountPaise:'500',method:'CASH',reference:null,note:'Part payment'},new Date('2026-11-02T12:00:00Z'));expect((await db.listCustomers())[0]?.balancePaise).toBe('1500');expect((await db.listCustomerLedger('c1'))[1]?.amountPaise).toBe('-500');
   await expect(db.recordAccountPayment('c1',{amountPaise:'1501',method:'UPI',reference:'ABCD1234',note:null},new Date())).rejects.toThrow(/more than/);expect((await db.listCustomers())[0]?.balancePaise).toBe('1500');expect((await db.listCustomerLedger('c1')).length).toBe(2);await db.close();
 });
+it('returns stock and account credit atomically, rejecting quantities already returned',async()=>{
+  const db=new LocalDatabase('test-return-atomic');const now=Date.now();
+  const customer={id:'c-return',name:'Customer',phone:null,creditLimitPaise:null,balancePaise:'0',onHold:false,createdAt:now};await db.createCustomer(customer);
+  const product:Product={id:'p-return',name:'Mug',category:'GENERAL',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'v-return',size:'',colour:'',sku:'MUG-R',barcode:'',price:'10.00',mrp:'',cost:'',opening:'5',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:5,lowStockThreshold:0}]};await db.saveProduct(product,[]);
+  const line={productId:product.id,variantId:'v-return',name:'Mug',variantLabel:'',barcode:'',quantity:2,unitPricePaise:'1000',mrpPaise:null,stockUnit:'UNIT' as const,lineDiscountPaise:'0',billDiscountSharePaise:'0',discountPaise:'0',discountReason:null,taxablePaise:'2000',gstRateBasisPoints:0,cgstPaise:'0',sgstPaise:'0',igstPaise:'0',totalPaise:'2000'};
+  const draft={type:'SALE' as const,roundedToRupee:true,lines:[line],subtotalPaise:'2000',lineDiscountPaise:'0',billDiscountPaise:'0',discountPaise:'0',billDiscountReason:null,taxablePaise:'2000',cgstPaise:'0',sgstPaise:'0',igstPaise:'0',roundOffPaise:'0',grandTotalPaise:'2000',gstRegistered:false,pricesIncludeTax:false,interState:false,seller:{storeName:'Shop',address:'',gstin:'',stateCode:'19'},customer:{id:customer.id,name:customer.name,phone:null},payments:[{method:'CREDIT' as const,amountPaise:'1000',reference:null,tenderedPaise:null,changePaise:null},{method:'CASH' as const,amountPaise:'1000',reference:null,tenderedPaise:null,changePaise:null}]};
+  const sale=await db.saveSale(draft,'INV',new Date('2026-11-01T12:00:00Z'));
+  const note=await db.saveReturn(sale.id,[1],'UPI','Damaged', 'CN',new Date('2026-11-01T12:05:00Z'));
+  expect(note.number).toBe('CN/26-27/00001');expect(note.originalInvoiceId).toBe(sale.id);expect(note.grandTotalPaise).toBe('1000');
+  expect(note.payments.map(p=>[p.method,p.amountPaise])).toEqual([['UPI','500'],['CREDIT','500']]);
+  expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(4);
+  expect((await db.listCustomers())[0]?.balancePaise).toBe('500');
+  expect((await db.listCustomerLedger(customer.id)).map(e=>e.type)).toEqual(['SALE','RETURN']);
+  await expect(db.saveReturn(sale.id,[2],'CASH','', 'CN',new Date())).rejects.toThrow(/exceeds/);
+  expect((await db.listInvoices()).length).toBe(2);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(4);
+  expect((await db.listMovements()).filter(m=>m.reason==='RETURNED').length).toBe(1);
+  await db.close();
+});
