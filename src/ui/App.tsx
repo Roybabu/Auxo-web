@@ -21,11 +21,13 @@ import { ReportingService } from '../application/reportingService';
 import { DayEndService } from '../application/dayEndService';
 import { ReportsPage, GstReportPage } from './ReportsPages';
 import { DayEndPage } from './DayEndPage';
+import { LoyaltyService } from '../application/loyaltyService';
+import { LoyaltySettingsPage } from './LoyaltySettingsPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured),sales=new SalesService(secured,secured);
-const backups=new BackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);
-const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
+const backups=new BackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
+const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
 export default function App(){
@@ -42,7 +44,7 @@ export default function App(){
     {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
   </nav></aside><main><Routes>
     <Route path="/" element={<section><h1>AUXO Web</h1><p>Local business workspace. Choose a module from the navigation.</p></section>}/>
-    {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
+    {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
     <Route path="/restaurant" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} restaurantMode/></Guard>}/>
     <Route path="/customers" element={<Guard permission="MANAGE_CUSTOMERS"><CustomerAccountsPage sales={sales} canReceive={auth.can('RECEIVE_ACCOUNT_PAYMENT')}/></Guard>}/>
@@ -57,6 +59,7 @@ export default function App(){
     <Route path="/reports" element={<Guard permission="VIEW_REPORTS"><ReportsPage service={reporting}/></Guard>}/>
     <Route path="/gst" element={<Guard permission="GST_REPORT"><GstReportPage service={reporting}/></Guard>}/>
     <Route path="/closing" element={<Guard permission="CLOSE_DAY"><DayEndPage service={dayEnd} user={user.name}/></Guard>}/>
+    <Route path="/loyalty" element={<Guard permission="MANAGE_LOYALTY"><LoyaltySettingsPage service={loyalty}/></Guard>}/>
     <Route path="*" element={<section><h1>Page not found</h1><NavLink to="/">Return to overview</NavLink></section>}/>
   </Routes></main></div></HashRouter>;
 }

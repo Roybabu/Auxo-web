@@ -18,6 +18,10 @@ describe('Android POS tax and discount calculations',()=>{
     expect(result.lineDiscount).toBe(1000n);expect(result.billDiscount).toBe(2260n);expect(result.discount).toBe(3260n);
     expect(result.lines[0]?.discountReason).toBe('Damaged box');expect(result.lines.reduce((n,x)=>n+BigInt(x.billDiscountSharePaise),0n)).toBe(2260n);
   });
+  it('applies loyalty value as a bill discount before tax while keeping it separate',()=>{
+    const result=calculateBill([line('11800')],settings,{kind:'AMOUNT',value:'',reason:''},false,100n);
+    expect(result.loyaltyDiscount).toBe(100n);expect(result.billDiscount).toBe(100n);expect(result.discount).toBe(100n);expect(result.taxable).toBe(9915n);expect(result.grandTotal).toBe(11700n);
+  });
   it('selects the higher apparel slab above the per-piece threshold',()=>{
     const result=calculateBill([line('300000',null,{apparelGst:true})],settings,{kind:'AMOUNT',value:'',reason:''},false);
     expect(result.lines[0]?.gstRateBasisPoints).toBe(1800);

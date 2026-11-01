@@ -43,6 +43,7 @@ it('saves invoice, sale movement and stock deduction atomically',async()=>{
 });
 it('records a credit sale on the customer ledger and enforces the limit atomically',async()=>{
   const db=new LocalDatabase('test-credit-sale');const now=Date.now();const customer={id:'c1',name:'A Customer',phone:null,creditLimitPaise:'3000',balancePaise:'0',onHold:false,createdAt:now};await db.createCustomer(customer);
+  await db.save({storeName:'Shop',address:'',onTimeBonusPoints:10});await db.saveLoyaltyRules({enabled:true,spendPerPointPaise:'10000',pointValuePaise:'100'});
   const product:Product={id:'p2',name:'Mug',category:'GENERAL',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'v2',size:'',colour:'',sku:'MUG',barcode:'',price:'20.00',mrp:'',cost:'',opening:'4',lowStock:'0',pricePaise:'2000',mrpPaise:null,costPaise:null,stock:4,lowStockThreshold:0}]};await db.saveProduct(product,[]);
   const line={productId:'p2',variantId:'v2',name:'Mug',variantLabel:'',barcode:'',quantity:1,unitPricePaise:'2000',mrpPaise:null,stockUnit:'UNIT' as const,lineDiscountPaise:'0',billDiscountSharePaise:'0',discountPaise:'0',discountReason:null,taxablePaise:'2000',gstRateBasisPoints:0,cgstPaise:'0',sgstPaise:'0',igstPaise:'0',totalPaise:'2000'};
   const draft={lines:[line],subtotalPaise:'2000',lineDiscountPaise:'0',billDiscountPaise:'0',discountPaise:'0',billDiscountReason:null,taxablePaise:'2000',cgstPaise:'0',sgstPaise:'0',igstPaise:'0',roundOffPaise:'0',grandTotalPaise:'2000',gstRegistered:true,pricesIncludeTax:false,interState:false,seller:{storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5',stateCode:'19'},customer:{id:customer.id,name:customer.name,phone:null},payments:[{method:'CREDIT' as const,amountPaise:'2000',reference:null,tenderedPaise:null,changePaise:null}]};
@@ -50,10 +51,11 @@ it('records a credit sale on the customer ledger and enforces the limit atomical
   await expect(db.saveSale(draft,'INV',new Date('2026-11-01T12:01:00Z'))).rejects.toThrow(/credit limit/);
   expect((await db.listCustomers())[0]?.balancePaise).toBe('2000');expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(3);expect((await db.listInvoices()).length).toBe(1);
   await db.recordAccountPayment('c1',{amountPaise:'500',method:'CASH',reference:null,note:'Part payment'},new Date('2026-11-02T12:00:00Z'));expect((await db.listCustomers())[0]?.balancePaise).toBe('1500');expect((await db.listCustomerLedger('c1'))[1]?.amountPaise).toBe('-500');
-  await expect(db.recordAccountPayment('c1',{amountPaise:'1501',method:'UPI',reference:'ABCD1234',note:null},new Date())).rejects.toThrow(/more than/);expect((await db.listCustomers())[0]?.balancePaise).toBe('1500');expect((await db.listCustomerLedger('c1')).length).toBe(2);await db.close();
+  await expect(db.recordAccountPayment('c1',{amountPaise:'1501',method:'UPI',reference:'ABCD1234',note:null},new Date())).rejects.toThrow(/more than/);expect((await db.listCustomers())[0]?.balancePaise).toBe('1500');expect((await db.listCustomerLedger('c1')).length).toBe(2);await db.recordAccountPayment('c1',{amountPaise:'1500',method:'CASH',reference:null,note:null},new Date('2026-11-02T12:00:00Z'));expect((await db.getLoyaltyPointsBalance('c1'))).toBe(10);expect((await db.listCustomerLoyaltyLedger('c1')).at(-1)?.type).toBe('ON_TIME_BONUS');await db.close();
 });
 it('returns stock and account credit atomically, rejecting quantities already returned',async()=>{
   const db=new LocalDatabase('test-return-atomic');const now=Date.now();
+  await db.saveLoyaltyRules({enabled:true,spendPerPointPaise:'1000',pointValuePaise:'100'});
   const customer={id:'c-return',name:'Customer',phone:null,creditLimitPaise:null,balancePaise:'0',onHold:false,createdAt:now};await db.createCustomer(customer);
   const product:Product={id:'p-return',name:'Mug',category:'GENERAL',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'v-return',size:'',colour:'',sku:'MUG-R',barcode:'',price:'10.00',mrp:'',cost:'',opening:'5',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:5,lowStockThreshold:0}]};await db.saveProduct(product,[]);
   const line={productId:product.id,variantId:'v-return',name:'Mug',variantLabel:'',barcode:'',quantity:2,unitPricePaise:'1000',mrpPaise:null,stockUnit:'UNIT' as const,lineDiscountPaise:'0',billDiscountSharePaise:'0',discountPaise:'0',discountReason:null,taxablePaise:'2000',gstRateBasisPoints:0,cgstPaise:'0',sgstPaise:'0',igstPaise:'0',totalPaise:'2000'};
@@ -65,8 +67,11 @@ it('returns stock and account credit atomically, rejecting quantities already re
   expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(4);
   expect((await db.listCustomers())[0]?.balancePaise).toBe('500');
   expect((await db.listCustomerLedger(customer.id)).map(e=>e.type)).toEqual(['SALE','RETURN']);
+  expect((await db.getLoyaltyPointsBalance(customer.id))).toBe(1);expect((await db.listCustomerLoyaltyLedger(customer.id)).map(e=>e.type)).toEqual(['REVERSED','EARNED']);
   await expect(db.saveReturn(sale.id,[2],'CASH','', 'CN',new Date())).rejects.toThrow(/exceeds/);
-  expect((await db.listInvoices()).length).toBe(2);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(4);
+  const redeemed=await db.saveSale({...draft,lines:[{...line,quantity:1,billDiscountSharePaise:'100',discountPaise:'100',taxablePaise:'900',totalPaise:'900'}],subtotalPaise:'1000',billDiscountPaise:'100',discountPaise:'100',taxablePaise:'900',grandTotalPaise:'900',loyaltyPointsRedeemed:1,loyaltyDiscountPaise:'100',payments:[{method:'CASH',amountPaise:'900',reference:null,tenderedPaise:null,changePaise:null}]},'INV',new Date('2026-11-02T12:00:00Z'));
+  expect(redeemed.loyaltyPointsRedeemed).toBe(1);expect(redeemed.loyaltyDiscountPaise).toBe('100');expect(await db.getLoyaltyPointsBalance(customer.id)).toBe(0);
+  expect((await db.listInvoices()).length).toBe(3);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(3);
   expect((await db.listMovements()).filter(m=>m.reason==='RETURNED').length).toBe(1);
   await db.close();
 });

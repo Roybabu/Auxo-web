@@ -8,6 +8,7 @@ import type { Product } from '../domain/catalog';
 it('encrypts a complete local snapshot, previews it, and restores it atomically',async()=>{
   const db=new LocalDatabase('test-backup-'+crypto.randomUUID()),auth=new AuthService(db),backups=new BackupService(db,auth);
   await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');const code=await auth.startRecoveryCode();await auth.confirmRecoveryCode(code);
+  await db.saveLoyaltyRules({enabled:true,spendPerPointPaise:'500',pointValuePaise:'100'});
   await db.save({storeName:'Original shop',address:'First road'});
   await auth.createEmployee('Cashier','cashier','BlueRiverSecret91','BlueRiverSecret91',['PROCESS_RETURN']);
   const now=Date.now();const customer={id:'customer-backup',name:'Customer',phone:null,creditLimitPaise:null,balancePaise:'0',onHold:false,createdAt:now};await db.createCustomer(customer);
@@ -26,7 +27,7 @@ it('encrypts a complete local snapshot, previews it, and restores it atomically'
   expect((await db.load())?.storeName).toBe('Changed shop');
   await backups.restore(prepared);expect(auth.getSnapshot()).toBeNull();expect((await db.load())?.storeName).toBe('Original shop');
   expect((await db.listAccounts()).length).toBe(2);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(1);
-  expect((await db.listInvoices()).length).toBe(1);expect((await db.listCustomers())[0]?.balancePaise).toBe('1000');expect((await db.listCustomerLedger(customer.id)).length).toBe(1);
+  expect((await db.listInvoices()).length).toBe(1);expect((await db.listCustomers())[0]?.balancePaise).toBe('1000');expect((await db.listCustomerLedger(customer.id)).length).toBe(1);expect(await db.getLoyaltyPointsBalance(customer.id)).toBe(2);expect((await db.getLoyaltyRules()).enabled).toBe(true);
   await auth.signIn('owner','RiverStoneSecret91');expect(auth.getSnapshot()?.role).toBe('SUPER_ADMIN');
   await db.close();
 });

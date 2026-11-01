@@ -11,6 +11,7 @@ import type { HeldBillDraft } from '../domain/heldBills';
 import type { Supplier, PurchaseOrder, PurchaseReceipt, PurchaseStatus } from '../domain/purchasing';
 import type { PurchasingStorage } from '../application/purchasingService';
 import { LocalDatabase } from './localDatabase';
+import type {LoyaltyRules} from '../domain/loyalty';
 
 /** The UI and business services receive this boundary, never the raw browser store. */
 export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorage,PurchasingStorage {
@@ -30,13 +31,17 @@ export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorag
   async deleteHeldBill(id:string){await this.auth.require('SELL');return this.raw.deleteHeldBill(id);}
   async listCustomers(){await this.auth.require('SELL');return this.raw.listCustomers();}
   async listCustomerLedger(customerId:string){await this.auth.require('MANAGE_CUSTOMERS');return this.raw.listCustomerLedger(customerId);}
+  async getLoyaltyRules():Promise<LoyaltyRules>{await this.auth.require('SELL');return this.raw.getLoyaltyRules();}
+  async saveLoyaltyRules(rules:LoyaltyRules){await this.auth.require('MANAGE_LOYALTY');return this.raw.saveLoyaltyRules(rules);}
+  async getLoyaltyPointsBalance(customerId:string){await this.auth.require('SELL');return this.raw.getLoyaltyPointsBalance(customerId);}
+  async listCustomerLoyaltyLedger(customerId:string){await this.auth.require('MANAGE_CUSTOMERS');return this.raw.listCustomerLoyaltyLedger(customerId);}
   async createCustomer(customer:BillingCustomer){await this.auth.require('SELL');return this.raw.createCustomer(customer);}
   async recordAccountPayment(customerId:string,payment:{amountPaise:string;method:'CASH'|'UPI'|'CARD';reference:string|null;note:string|null},date:Date):Promise<CustomerLedgerEntry>{await this.auth.require('RECEIVE_ACCOUNT_PAYMENT');return this.raw.recordAccountPayment(customerId,payment,date);}
   async saveSale(draft:Omit<InvoiceRecord,'id'|'number'|'createdAt'>,prefix:string,date:Date,heldBillId?:string):Promise<InvoiceRecord>{
     await this.auth.require('SELL');if(!this.auth.can('UNLIMITED_DISCOUNT')){
       const shop=await this.raw.load();const limit=shop?.employeeDiscountLimitBp??0;
       const lineDiscounts=draft.lines.map(l=>({gross:l.stockUnit==='UNIT'?BigInt(l.unitPricePaise)*BigInt(l.quantity):(BigInt(l.unitPricePaise)*BigInt(l.quantity)+500n)/1000n,discount:BigInt(l.lineDiscountPaise)}));
-      if(discountExceeds(BigInt(draft.subtotalPaise),BigInt(draft.discountPaise),lineDiscounts,limit))throw new Error('Employee discount exceeds the permitted limit.');
+      if(discountExceeds(BigInt(draft.subtotalPaise),BigInt(draft.discountPaise)-BigInt(draft.loyaltyDiscountPaise??'0'),lineDiscounts,limit))throw new Error('Employee discount exceeds the permitted limit.');
     }return this.raw.saveSale(draft,prefix,date,heldBillId);
   }
   async listProductsForPurchasing(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listProducts();}
