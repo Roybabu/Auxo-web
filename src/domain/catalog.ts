@@ -17,9 +17,9 @@ export const PRODUCT_CATEGORIES = {
 } as const;
 export type ProductCategory = keyof typeof PRODUCT_CATEGORIES;
 export type StockUnit = 'UNIT'|'GRAM'|'MILLILITRE';
-export interface VariantInput {size:string; colour:string; sku:string; barcode:string; price:string; mrp:string; cost:string; opening:string; lowStock:string}
+export interface VariantInput {size:string; colour:string; sku:string; barcode:string; price:string; mrp:string; cost:string; opening:string; lowStock:string;batchNumber?:string;expiryDate?:string}
 export interface ProductInput {name:string; category:ProductCategory; brand:string; hsnCode?:string; gstRateBasisPoints:number|null; apparelGst:boolean; variants:VariantInput[]}
-export interface ProductVariant extends VariantInput {id:string; pricePaise:string; mrpPaise:string|null; costPaise:string|null; stock:number; lowStockThreshold:number}
+export interface ProductVariant extends Omit<VariantInput,'batchNumber'|'expiryDate'> {id:string; pricePaise:string; mrpPaise:string|null; costPaise:string|null; stock:number; lowStockThreshold:number;batchNumber?:string|null;expiryDate?:string|null}
 export interface Product {id:string; name:string; category:ProductCategory; brand:string|null; hsnCode?:string|null; gstRateBasisPoints:number|null; apparelGst:boolean; stockUnit:StockUnit; tracksStock:true; createdAt:number; updatedAt:number; variants:ProductVariant[]}
 export function parseGstRate(text:string):number|null {const value=text.trim();if(!/^\d{1,3}(\.\d{1,2})?$/.test(value))return null;const [whole,fraction='']=value.split('.');const rate=Number(whole)*100+Number(fraction.padEnd(2,'0'));return rate<=10_000?rate:null;}
 export function validateHsn(text:string):string|null {const value=text.trim();if(value&&!/^(\d{4}|\d{6}|\d{8})$/.test(value))throw new Error('HSN code must be 4, 6 or 8 digits.');return value||null;}
@@ -57,14 +57,15 @@ export function validateProduct(input:ProductInput, existing:readonly Product[])
     if(config.sizeColour&&(combos.has(combo)))throw new Error('Size and colour combinations must be unique.'); combos.add(combo);
     const opening=parseStock(row.opening,input.category==='LOOSE');
     if(opening===null||!count(row.lowStock))throw new Error(input.category==='LOOSE'?'Enter valid opening stock (up to three decimals) and a whole low-stock level.':'Stock and low-stock levels must be whole numbers from 0 to 1,000,000.');
-    return {id:crypto.randomUUID(),size:config.sizeColour?row.size.trim():'',colour:config.sizeColour?row.colour.trim():'',sku,barcode,price:row.price.trim(),mrp:row.mrp.trim(),cost:row.cost.trim(),opening:row.opening.trim(),lowStock:row.lowStock.trim(),pricePaise:price.toString(),mrpPaise:mrp?.toString()??null,costPaise:cost?.toString()??null,stock:opening,lowStockThreshold:Number(row.lowStock)};
+    const batchNumber=config.expiry?(row.batchNumber?.trim()||null):null;if(batchNumber&&batchNumber.length>32)throw new Error('Batch number must be 32 characters or fewer.');const expiryDate=config.expiry?(row.expiryDate||null):null;if(expiryDate&&!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate))throw new Error('Enter a valid batch expiry date.');
+    return {id:crypto.randomUUID(),size:config.sizeColour?row.size.trim():'',colour:config.sizeColour?row.colour.trim():'',sku,barcode,price:row.price.trim(),mrp:row.mrp.trim(),cost:row.cost.trim(),opening:row.opening.trim(),lowStock:row.lowStock.trim(),batchNumber,expiryDate,pricePaise:price.toString(),mrpPaise:mrp?.toString()??null,costPaise:cost?.toString()??null,stock:opening,lowStockThreshold:Number(row.lowStock)};
   });
   if(input.gstRateBasisPoints!==null&&(!Number.isInteger(input.gstRateBasisPoints)||input.gstRateBasisPoints<0||input.gstRateBasisPoints>10_000))throw new Error('GST rate must be between 0% and 100%.');
   if(input.apparelGst&&!['GARMENT','FOOTWEAR'].includes(input.category))throw new Error('The apparel GST slab applies only to garments and footwear.');
   const now=Date.now(); return {id:crypto.randomUUID(),name,category:input.category,brand:config.label==='Restaurant'?null:input.brand.trim()||null,hsnCode:validateHsn(input.hsnCode??''),gstRateBasisPoints:input.gstRateBasisPoints,apparelGst:input.apparelGst,stockUnit:input.category==='LOOSE'?'GRAM':'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants};
 }
-export type MovementReason='INITIAL'|'RECEIVED'|'RETURNED'|'SOLD'|'DAMAGED'|'CORRECTION';
-export interface StockMovement {id:string;variantId:string;quantityChange:number;reason:MovementReason;note:string|null;createdAt:number}
+export type MovementReason='INITIAL'|'RECEIVED'|'RETURNED'|'SOLD'|'DAMAGED'|'EXPIRED'|'SPOILED'|'CORRECTION';
+export interface StockMovement {id:string;variantId:string;quantityChange:number;reason:MovementReason;note:string|null;createdAt:number;batchId?:string|null;invoiceId?:string|null;sourceInvoiceId?:string|null}
 export function manualStockChange(reason:MovementReason,text:string,current:number,unit:StockUnit):number {
   const s=text.trim(); let quantity:number;
   if(unit==='UNIT') {if(!/^\d{1,7}$/.test(s))throw new Error('Enter a whole stock quantity.');quantity=Number(s);}

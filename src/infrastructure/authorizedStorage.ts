@@ -12,6 +12,7 @@ import type { Supplier, PurchaseOrder, PurchaseReceipt, PurchaseStatus } from '.
 import type { PurchasingStorage } from '../application/purchasingService';
 import { LocalDatabase } from './localDatabase';
 import type {LoyaltyRules} from '../domain/loyalty';
+import type {StockBatch} from '../domain/batches';
 
 /** The UI and business services receive this boundary, never the raw browser store. */
 export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorage,PurchasingStorage {
@@ -20,8 +21,9 @@ export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorag
   async save(shop:ShopIdentity){await this.auth.require('MANAGE_SETTINGS');return this.raw.save(shop);}
   async listProducts(){await this.auth.require('SELL');return this.raw.listProducts();}
   async listMovements(){await this.auth.require('VIEW_STOCK_RECORDS');return this.raw.listMovements();}
+  async listStockBatches(){await this.auth.require('VIEW_STOCK_RECORDS');return this.raw.listStockBatches();}
   async saveProduct(product:Product,movements:StockMovement[]){await this.auth.require('MANAGE_PRODUCTS');return this.raw.saveProduct(product,movements);}
-  async adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null){await this.auth.require('ADJUST_STOCK');return this.raw.adjustStock(variantId,change,reason,note);}
+  async adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batch?:Pick<StockBatch,'batchNumber'|'expiryDate'>,batchId?:string|null){await this.auth.require('ADJUST_STOCK');return this.raw.adjustStock(variantId,change,reason,note,batch,batchId);}
   async updateTax(productId:string,rate:number|null,apparel:boolean){await this.auth.require('MANAGE_PRODUCTS');return this.raw.updateTax(productId,rate,apparel);}
   async updateHsn(productId:string,hsn:string|null){await this.auth.require('MANAGE_PRODUCTS');return this.raw.updateHsn(productId,hsn);}
   async listInvoices(){await this.auth.require('VIEW_INVOICES');return this.raw.listInvoices();}
