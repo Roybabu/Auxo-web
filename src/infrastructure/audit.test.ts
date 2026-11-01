@@ -96,7 +96,7 @@ it('audits category add, rename, enable and delete operations',async()=>{
 it('uses the selected category profile and preserves the category relation on products',async()=>{
  const db=new LocalDatabase(`product-category-link-${crypto.randomUUID()}`),auth=new AuthService(db);await auth.setup('Owner','owner.product-category','Strong-Password-886','Strong-Password-886');
  const category=await db.addCategory('Sweets','PACKAGED_FOOD',auth.getSnapshot()),catalog=new CatalogService(new AuthorizedStorage(db,auth));
- const product=await catalog.create({name:'Jaggery',category:'PACKAGED_FOOD',categoryId:category.id,brand:'',gstRateBasisPoints:null,apparelGst:false,variants:[{size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0'}]});
+ const product=await catalog.create({name:'Jaggery',category:'PACKAGED_FOOD',categoryId:category.id,brand:'',gstRateBasisPoints:null,apparelGst:false,variants:[{size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',netQuantity:'500',netUnit:'GRAM'}]});
  expect(product.category).toBe('PACKAGED_FOOD');expect(product.categoryId).toBe(category.id);await expect(db.deleteCategory(category.id,auth.getSnapshot())).rejects.toThrow(/products still use/i);await db.close();
 });
 

@@ -1,5 +1,5 @@
 import { checkedMoney, formatMoney, parseMoney } from './money';
-import type { Product, ProductVariant } from './catalog';
+import {variantAttributesLabel,type Product,type ProductVariant} from './catalog';
 
 export type DiscountDraft={kind:'AMOUNT'|'PERCENT';value:string;reason:string};
 export type TaxSettings={gstRegistered:boolean;pricesIncludeTax:boolean;roundOff:boolean;stateCode:string;invoicePrefix:string;storeName:string;address:string;gstin:string};
@@ -45,4 +45,4 @@ export function validateAccountPayment(draft:AccountPaymentDraft,balance:bigint)
   const reference=draft.reference.trim();if(reference&&draft.method==='UPI'&&!/^[A-Za-z0-9]{4,35}$/.test(reference))throw new Error('UPI reference must be 4–35 letters or digits.');if(reference&&draft.method==='CARD'&&!/^\d{4}$/.test(reference))throw new Error('For card payments, enter the last four digits.');
   const note=draft.note.trim();if(note.length>120)throw new Error('Payment note must be 120 characters or fewer.');return {amountPaise:amount.toString(),method:draft.method,reference:reference&&draft.method!=='CASH'?reference:null,note:note||null};
 }
-export function cartLineFromProduct(product:Product,variant:ProductVariant):CartLine{return {productId:product.id,variantId:variant.id,name:product.name,variantLabel:[variant.size,variant.colour].filter(Boolean).join(' / '),barcode:variant.barcode,hsnCode:product.hsnCode??null,restaurantItem:product.category==='RESTAURANT',quantity:product.stockUnit==='UNIT'?1:1000,unitPricePaise:variant.pricePaise,mrpPaise:variant.mrpPaise,stockUnit:product.stockUnit,availableStock:variant.stock,gstRateBasisPoints:product.gstRateBasisPoints??null,apparelGst:product.apparelGst??false,lineDiscount:null};}
+export function cartLineFromProduct(product:Product,variant:ProductVariant):CartLine{return {productId:product.id,variantId:variant.id,name:product.name,variantLabel:variantAttributesLabel(variant,' / '),barcode:variant.barcode,hsnCode:product.hsnCode??null,restaurantItem:product.category==='RESTAURANT',quantity:product.stockUnit==='UNIT'?1:1000,unitPricePaise:variant.pricePaise,mrpPaise:variant.mrpPaise,stockUnit:product.stockUnit,availableStock:variant.stock,gstRateBasisPoints:product.gstRateBasisPoints??null,apparelGst:product.apparelGst??false,lineDiscount:null};}
