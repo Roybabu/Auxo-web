@@ -63,8 +63,7 @@ PRODUCTS AND INVENTORY
       are restricted to active suppliers; reorder amounts follow the product's stock unit.
 [Done] Product and per-colour photos: images are resized and compressed, stored in IndexedDB, shown in catalogue and billing, and included in encrypted web backup/restore.
 [Done] Loose goods can be counted by weight (kg/g) or volume (L/ml), following Android category rules. Selection is fixed after product creation and carries through billing, inventory, purchases, stock counts, reports, and encrypted backups.
-[ ] Bring these additional Android product fields into create, edit, CSV/backup handling,
-    relevant billing/inventory views, and validation without losing existing data.
+[Done] Product fields audited against Android Product, ProductVariant, ProductForm and CSV ImportColumn. Android-defined fields have editor/storage/backup validation; Android-supported CSV columns are represented; product, billing and inventory views use the relevant values. No extra CSV columns were added for fields Android itself does not import.
 
 BILLING AND DOCUMENTS
 [ ] Quotations: create/save, list/load, expiry/validity, repricing and conversion to sale.
