@@ -16,9 +16,9 @@ npm run build
 
 The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. Products and inventory support product variants, category checks, barcode/SKU validation, GST-rate assignment, opening stock, manual stock changes, and movement history.
 
-The initial POS slice supports product search and barcode entry, quantities, bill-level amount or percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history, and atomic local invoice/stock updates.
+The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit payments update the customer balance and account ledger in the sale transaction.
 
-This is not ready for live transactions. Line-level discounts, customer attachment and credit, employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
+This is not ready for live transactions. Customer account payments/statements, employee discount permissions, custom GST rates, returns/refunds, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
 
 Premium styling, desktop packaging, cloud services and synchronization are deferred. No Android-specific APIs, biometric/PIN login, Bluetooth or installer logic is included.
 
@@ -29,7 +29,7 @@ Premium styling, desktop packaging, cloud services and synchronization are defer
 - `src/infrastructure`: browser IndexedDB implementation.
 - `src/ui`: pages, navigation and reusable presentation components.
 
-Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Invoice, stock and sale-movement writes share a transaction. No cloud synchronization or Android APIs are included.
+Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Invoice, stock, sale-movement, customer-balance and account-ledger writes share a transaction. No cloud synchronization or Android APIs are included.
 
 ## Provenance
 
