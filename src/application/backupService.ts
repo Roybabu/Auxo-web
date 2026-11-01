@@ -1,7 +1,7 @@
 import type { AuthService } from './authService';
 import { summarizeBackup, validateBackup, type BusinessSnapshot, type PortableBackup } from '../domain/backup';
 
-export interface BackupStorage {snapshot():Promise<BusinessSnapshot>;replaceSnapshot(data:BusinessSnapshot):Promise<void>}
+export interface BackupStorage {snapshot():Promise<BusinessSnapshot>;replaceSnapshot(data:BusinessSnapshot):Promise<void>;recordAudit?(actor:{id:string;name:string;role:'SUPER_ADMIN'|'EMPLOYEE'}|null,action:'BACKUP_CREATED',entityType:'backup',entityId:string|null,summary:string):Promise<void>}
 const magic=new TextEncoder().encode('AUXOWEB1');
 const headerSize=41,iterations=600_000,maxBytes=100*1024*1024;
 async function key(passphrase:string,salt:Uint8Array,rounds:number){const input=await crypto.subtle.importKey('raw',new TextEncoder().encode(passphrase),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:salt as BufferSource,iterations:rounds},input,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
@@ -12,11 +12,11 @@ export class BackupService {
   constructor(private readonly storage:BackupStorage,private readonly auth:AuthService){}
   async export(passphrase:string):Promise<Blob>{
     await this.auth.require('BACKUP_AND_RESTORE');if(passphrase.length<10)throw new Error('Backup passphrase must be at least 10 characters.');
-    const backup:PortableBackup={app:'auxo-web-genesis',format:1,createdAt:Date.now(),databaseVersion:11,data:await this.storage.snapshot()};validateBackup(backup);
+    const backup:PortableBackup={app:'auxo-web-genesis',format:1,createdAt:Date.now(),databaseVersion:12,data:await this.storage.snapshot()};validateBackup(backup);
     const plaintext=new TextEncoder().encode(JSON.stringify(backup));if(plaintext.byteLength>maxBytes)throw new Error('Backup exceeds the current 100 MB web limit.');
     const header=new Uint8Array(headerSize);header.set(magic);header[8]=1;new DataView(header.buffer).setUint32(9,iterations,false);crypto.getRandomValues(header.subarray(13,29));crypto.getRandomValues(header.subarray(29,41));
     const secret=await key(passphrase,header.subarray(13,29),iterations);const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv:header.subarray(29,41) as BufferSource,additionalData:header as BufferSource},secret,plaintext as BufferSource);
-    return new Blob([header.buffer,ciphertext],{type:'application/octet-stream'});
+    const actor=this.auth.getSnapshot();await this.storage.recordAudit?.(actor?{id:actor.id,name:actor.name,role:actor.role}:null,'BACKUP_CREATED','backup',null,'Created an encrypted business backup');return new Blob([header.buffer,ciphertext],{type:'application/octet-stream'});
   }
   async inspect(file:Blob,passphrase:string):Promise<PreparedBackup>{
     await this.auth.require('BACKUP_AND_RESTORE');if(!passphrase)throw new Error('Enter the backup passphrase.');
