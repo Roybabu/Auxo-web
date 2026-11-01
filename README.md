@@ -14,11 +14,11 @@ npm run build
 
 ## Implemented slices
 
-The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. Products and inventory support product variants, category checks, barcode/SKU validation, standard and custom GST-rate assignment, optional 4/6/8-digit HSN codes, opening stock, manual stock changes, and movement history.
+The foundation includes React/TypeScript/Vite, desktop navigation, reusable form/table components, IndexedDB persistence, and generated PWA assets. First launch creates one local Super Admin with a password; the admin can add, deactivate, grant access to, and reset passwords for employees. Roles and permission dependencies follow Android. Passwords use per-account salted PBKDF2-SHA256 hashes, and sessions are held in memory. Business service storage is permission-checked, including return and stock operations and an employee discount cap set by the admin. Products and inventory support product variants, category checks, barcode/SKU validation, standard and custom GST-rate assignment, optional 4/6/8-digit HSN codes, opening stock, manual stock changes, and movement history.
 
 The initial POS slice supports product search and barcode entry, quantities, line and bill amount/percent discounts, GST-inclusive/exclusive calculations, garment/footwear slabs, CGST/SGST or IGST, rupee round-off, cash/UPI/card split payments, financial-year invoice numbers, invoice history/detail, and atomic local invoice/stock updates. Customers can be saved with a credit limit; credit sales and later account repayments update the customer balance and ledger. A customer account screen shows the running statement and accepts cash, UPI or card repayments. Item returns create numbered credit notes, restore stock, and calculate cumulative refunds from original invoice values. Refunds can be recorded as cash, UPI, card or customer-account credit; an original split credit sale settles its proportional account share first.
 
-This is not ready for live transactions. Employee login, roles and discount permissions, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Earlier prototype invoices lack a saved round-off setting and are blocked from automated returns because their refund cannot be reliably calculated. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
+This is not ready for live transactions. Administrator password recovery, audit log, held and split restaurant bills, invoice print/export, and browser-level offline acceptance remain incomplete. Earlier prototype invoices lack a saved round-off setting and are blocked from automated returns because their refund cannot be reliably calculated. Other module routes are marked not implemented; the 13 report identifiers are listed but report calculations are not available.
 
 Premium styling, desktop packaging, cloud services and synchronization are deferred. No Android-specific APIs, biometric/PIN login, Bluetooth or installer logic is included.
 
@@ -29,7 +29,7 @@ Premium styling, desktop packaging, cloud services and synchronization are defer
 - `src/infrastructure`: browser IndexedDB implementation.
 - `src/ui`: pages, navigation and reusable presentation components.
 
-Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Each sale or return updates its invoices, stock, movements, customer balance and account ledger in one transaction. No cloud synchronization or Android APIs are included.
+Money uses signed-64-bit-range bigint paise. Invoice monetary values are stored as decimal strings in IndexedDB. Each sale or return updates its invoices, stock, movements, customer balance and account ledger in one transaction. Access checks guard application storage calls; as with Android local storage, they do not protect against someone who directly controls browser data. There is no password recovery yet, so keep the administrator password safe. No cloud synchronization or Android APIs are included.
 
 ## Provenance
 

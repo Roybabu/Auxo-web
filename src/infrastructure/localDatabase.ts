@@ -6,6 +6,7 @@ import type { MovementReason, Product, StockMovement } from '../domain/catalog';
 import type { BillingCustomer, CustomerLedgerEntry, InvoiceRecord } from '../domain/billing';
 import type { SalesStorage } from '../application/salesService';
 import { buildReturn, type RefundMethod } from '../domain/returns';
+import type { StoredAccount } from '../application/authService';
 interface GenesisSchema extends DBSchema {
   shop: { key: string; value: ShopIdentity };
   products: { key: string; value: Product };
@@ -13,14 +14,15 @@ interface GenesisSchema extends DBSchema {
   invoices: { key: string; value: InvoiceRecord; indexes: { 'by-number': string } };
   customers: { key: string; value: BillingCustomer };
   customerLedger: { key: string; value: CustomerLedgerEntry; indexes: { 'by-customer': string } };
+  accounts: {key:string;value:StoredAccount;indexes:{'by-identifier':string}};
 }
 /** This new database has no dependency on, or migration from, the former web app. */
 export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage {
   private connection?: Promise<IDBPDatabase<GenesisSchema>>;
   constructor(private readonly name = 'auxo-genesis-v1') {}
   private connect() {
-    this.connection ??= openDB<GenesisSchema>(this.name, 5, {
-      upgrade(db, oldVersion) { if(oldVersion<1) db.createObjectStore('shop'); if(oldVersion<2) { db.createObjectStore('products',{keyPath:'id'}); db.createObjectStore('movements',{keyPath:'id'}); } if(oldVersion<3){const invoices=db.createObjectStore('invoices',{keyPath:'id'});invoices.createIndex('by-number','number',{unique:true});} if(oldVersion<4)db.createObjectStore('customers',{keyPath:'id'});if(oldVersion<5){const ledger=db.createObjectStore('customerLedger',{keyPath:'id'});ledger.createIndex('by-customer','customerId');} },
+    this.connection ??= openDB<GenesisSchema>(this.name, 6, {
+      upgrade(db, oldVersion) { if(oldVersion<1) db.createObjectStore('shop'); if(oldVersion<2) { db.createObjectStore('products',{keyPath:'id'}); db.createObjectStore('movements',{keyPath:'id'}); } if(oldVersion<3){const invoices=db.createObjectStore('invoices',{keyPath:'id'});invoices.createIndex('by-number','number',{unique:true});} if(oldVersion<4)db.createObjectStore('customers',{keyPath:'id'});if(oldVersion<5){const ledger=db.createObjectStore('customerLedger',{keyPath:'id'});ledger.createIndex('by-customer','customerId');}if(oldVersion<6){const accounts=db.createObjectStore('accounts',{keyPath:'id'});accounts.createIndex('by-identifier','identifier',{unique:true});} },
       blocking: () => { void this.close(); },
       terminated: () => { this.connection = undefined; },
     }).catch(error => { this.connection = undefined; throw error; });
@@ -36,6 +38,12 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
     await transaction.done;
   }
   async listProducts() { return (await (await this.connect()).getAll('products')); }
+  async listAccounts(){return (await (await this.connect()).getAll('accounts'));}
+  async getAccount(id:string){return (await (await this.connect()).get('accounts',id))??null;}
+  async findAccount(identifier:string){return (await (await this.connect()).getFromIndex('accounts','by-identifier',identifier))??null;}
+  async createAdmin(account:StoredAccount){const db=await this.connect();const tx=db.transaction('accounts','readwrite');if((await tx.store.count())!==0){await tx.done;throw new Error('Administrator is already set up.');}await tx.store.add(account);await tx.done;}
+  async createEmployeeAccount(account:StoredAccount){const db=await this.connect();const tx=db.transaction('accounts','readwrite');await tx.store.add(account);await tx.done;}
+  async updateAccount(account:StoredAccount){const db=await this.connect();const tx=db.transaction('accounts','readwrite');await tx.store.put(account);await tx.done;}
   async updateTax(productId:string,rate:number|null,apparel:boolean) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,gstRateBasisPoints:rate,apparelGst:apparel,updatedAt:Date.now()});await tx.done;}
   async updateHsn(productId:string,hsn:string|null) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,hsnCode:hsn,updatedAt:Date.now()});await tx.done;}
   async listMovements() { return (await (await this.connect()).getAll('movements')).sort((a,b)=>b.createdAt-a.createdAt); }

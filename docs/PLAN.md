@@ -20,6 +20,7 @@ Relevant foundation sources inspected (under app/src/main/java/com/auxo/pos):
 4. Customer accounts initial slice: cash/UPI/card repayments, due-balance validation, atomic balance/ledger updates, and a chronological running statement.
 5. Returns initial slice: partial and full credit notes, original-invoice rounding and cumulative refund allocation, proportional account refunds, stock restoration, and customer-ledger entries in one transaction.
 6. Product tax details: custom GST percentages from 0–100 with two decimal places, 4/6/8-digit HSN validation, and HSN/rate snapshots on sales and credit notes.
+7. Local employee access: first-run Super Admin setup, salted PBKDF2 password sign-in, employee accounts and grants, activation and password reset, service storage authorization, and admin-configured employee discount limits.
 
 Sources used for the POS and account slice include `domain/billing/BillCalculator.kt`, `Cart.kt`, `Discount.kt`, `DiscountPolicy.kt`, `CartValidator.kt`, `Payments.kt`, `InvoiceNumbers.kt`, `domain/customers/Ledger.kt`, `domain/model/GstRate.kt`, `StockUnit.kt`, `billing/Identifiers.kt`, `billing/SettingsValidator.kt`, `domain/model/Customer.kt`, `domain/contacts/ContactForms.kt`, and `domain/usecase/BillingUseCases.kt`.
 
@@ -38,10 +39,10 @@ Each phase must have source references, tests, explicit remaining gaps and a sep
 ## Current limits
 
 - PWA assets are generated; offline reload/install/update behavior requires browser acceptance testing. App updates must not interrupt unfinished bills.
-- IndexedDB schema is version 5 and stores shop settings, products, stock movements, invoices, customers and customer account ledger entries. Further stores must use explicit schema upgrades.
+- IndexedDB schema is version 6 and stores shop settings, products, stock movements, invoices, customers, account ledger entries and local user accounts. Further stores must use explicit schema upgrades.
 - No old-web data migration. The new database name is `auxo-genesis-v1`.
-- No authentication yet. This is a development skeleton, not an operational POS.
+- Sessions are memory-only, so a reload requires password sign-in. Administrator password recovery, activity audit, and browser acceptance testing remain incomplete. The first person opening an existing prototype data store after this upgrade creates its local administrator. This is a development skeleton, not an operational POS.
 - Origin/profile changes do not transfer local data. Backup/restore is not yet implemented.
 - GitHub CLI push is unavailable in this workspace; commits are published through the connected GitHub repository access and verified against the branch ref.
-- POS supports line and bill discounts, account-credit sales with saved customers, standard/custom GST rates (plus the Android apparel/footwear slab), optional HSN, cash/UPI/card payments and returns/refunds. Customer accounts support repayments and running statements. Employee login, roles and discount limits, invoice print/export, and browser-level offline acceptance are pending.
+- POS supports line and bill discounts, account-credit sales with saved customers, standard/custom GST rates (plus the Android apparel/footwear slab), optional HSN, cash/UPI/card payments and returns/refunds. Customer accounts support repayments and running statements. Employee roles, permissions and discount limits are enforced through the authorized storage boundary. Admin recovery, invoice print/export, and browser-level offline acceptance are pending.
 - Earlier prototype invoices do not store whether rupee round-off was enabled. Automated returns for those invoices are blocked rather than guessing a refund rule.
