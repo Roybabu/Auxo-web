@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { calculateBill, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
+import { calculateBill, cartLineFromProduct, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
+import type {Product,ProductVariant} from './catalog';
 
 const settings:TaxSettings={gstRegistered:true,pricesIncludeTax:true,roundOff:true,stateCode:'19',invoicePrefix:'INV',storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5'};
 const line=(price:string,rate:number|null=1800,extra:Partial<CartLine>={}):CartLine=>({productId:'p1',variantId:'v1',name:'Item',variantLabel:'',barcode:'',quantity:1,unitPricePaise:price,mrpPaise:null,stockUnit:'UNIT',availableStock:10,gstRateBasisPoints:rate,apparelGst:false,lineDiscount:null,...extra});
@@ -45,3 +46,5 @@ describe('Android POS tax and discount calculations',()=>{
     expect(()=>validateAccountPayment({amount:'1',method:'CASH',reference:'',note:''},0n)).toThrow(/no outstanding balance/);
   });
 });
+
+it('restaurant availability and no-stock tracking are reflected in billing lines',()=>{const p:Product={id:'dish',name:'Noodles',category:'RESTAURANT',brand:null,gstRateBasisPoints:500,apparelGst:false,available:true,tracksStock:false,stockUnit:'UNIT',createdAt:1,updatedAt:1,variants:[]};const v:ProductVariant={id:'dish-v',size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0};const line=cartLineFromProduct(p,v);expect(line.availableStock).toBe(Number.MAX_SAFE_INTEGER);expect(()=>calculateBill([line],settings,{kind:'AMOUNT',value:'',reason:''},false)).not.toThrow();const unavailable=cartLineFromProduct({...p,available:false},v);expect(unavailable.unavailable).toBe(true);expect(()=>calculateBill([unavailable],settings,{kind:'AMOUNT',value:'',reason:''},false)).toThrow(/currently unavailable/);});

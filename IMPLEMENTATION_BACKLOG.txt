@@ -48,9 +48,9 @@ BUSINESS WORKFLOWS PRESENT IN THE WEB APP
 CONFIRMED IMPLEMENTATION GAPS
 -----------------------------
 PRODUCTS AND INVENTORY
-[ ] Restaurant product availability (whether an item can be added to a bill).
-[ ] Restaurant products that do not track stock; the current web product type always
-    tracks stock and billing uses stock availability.
+[Done] Restaurant product availability controls whether a menu item can be added to a bill.
+[Done] Restaurant products can opt out of stock tracking; billing remains available,
+    while stock movements, purchasing, stock counts, and stock reports exclude them.
 [ ] Product subcategories, including restaurant menu sections.
 [ ] Electronics warranty duration.
 [ ] Pharmacy prescription-required flag.
@@ -128,6 +128,12 @@ Saved products keep their category; existing variant IDs, on-hand stock, and bat
 are preserved; removing a stocked variant is blocked; newly added variants record opening
 stock. This does not yet edit the specialty product fields listed above.
 
-Latest web commit: 588ea3a (published on genesis/fresh-start).
-Last recorded checks: typecheck passed, 85 tests passed, production build passed.
-The build reports a bundle-size warning above 500 kB; it does not fail the build.
+Restaurant product availability and optional stock tracking are now carried through
+product create/edit, POS, held bills, sale and return transactions, stock adjustments,
+purchases, stock counts, and stock reports. Older products/backups retain compatible
+defaults. This change does not yet implement product subcategories or other specialty
+product fields.
+
+Latest web commit: Restaurant availability and optional stock tracking.
+Checks for this change: typecheck passed; 24 test files / 90 tests passed; production
+build passed. The build reports a bundle-size warning above 500 kB; it does not fail.

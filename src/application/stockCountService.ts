@@ -6,7 +6,7 @@ import type {Product} from '../domain/catalog';
 
 export class StockCountService{
  constructor(private readonly storage:LocalDatabase,private readonly auth:AuthService){}
- async load(){await this.auth.require('ADJUST_STOCK');const [count,products]=await Promise.all([this.storage.getOpenStockCount(),this.storage.listProducts()]);return {count,products:products.filter(product=>product.tracksStock)};}
+ async load(){await this.auth.require('ADJUST_STOCK');const [count,products]=await Promise.all([this.storage.getOpenStockCount(),this.storage.listProducts()]);return {count,products:products.filter(product=>product.tracksStock!==false)};}
  async start(){await this.auth.require('ADJUST_STOCK');const user=this.auth.getSnapshot(),result=await this.storage.startStockCount(count=>({actor:user,action:'STOCK_COUNT_STARTED',entityType:'stock_count',entityId:count.id,summary:`Started stock count ${count.id}`}));return result.count;}
  async setLine(countId:string,variantId:string,text:string){await this.auth.require('ADJUST_STOCK');const product=(await this.storage.listProducts()).find(row=>row.variants.some(variant=>variant.id===variantId));if(!product)throw new Error('Product is no longer in inventory.');const counted=parseCounted(text,product);if(counted===null)throw new Error(product.stockUnit==='UNIT'?'Enter a whole non-negative quantity.':'Enter a non-negative quantity with up to three decimal places.');if(!await this.storage.saveStockCountLine(countId,variantId,counted))throw new Error('This stock count is no longer open.');}
  async removeLine(countId:string,variantId:string){await this.auth.require('ADJUST_STOCK');if(!await this.storage.removeStockCountLine(countId,variantId))throw new Error('This stock count is no longer open.');}

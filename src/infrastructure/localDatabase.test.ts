@@ -3,6 +3,7 @@ import { expect, it } from 'vitest';
 import { LocalDatabase } from './localDatabase';
 import { ShopService } from '../application/shopService';
 import type { Product } from '../domain/catalog';
+import type {InvoiceRecord} from '../domain/billing';
 import {buildDayFigures} from '../domain/dayEnd';
 it('commits store details and reloads them through a new connection',async()=>{
   const name = 'test-persistence';
@@ -36,6 +37,13 @@ it('updates product details without changing stock, and prevents removing a stoc
   await db.saveProduct(product,[]);await db.updateProduct({...product,name:'Updated tea',updatedAt:now+100,variants:[{...product.variants[0]!,price:'12.00',pricePaise:'1200',stock:999,opening:'999'}]},[]);
   expect((await db.listProducts())[0]).toMatchObject({name:'Updated tea',createdAt:now,variants:[{id:'edit-variant',pricePaise:'1200',stock:5}]});
   await expect(db.updateProduct({...product,variants:[]},[])).rejects.toThrow(/stock on hand/);expect((await db.listProducts())[0]?.variants).toHaveLength(1);await db.close();
+});
+it('sells an available no-stock restaurant item without changing stock or recording a stock movement',async()=>{
+  const db=new LocalDatabase('test-restaurant-no-stock');const product:Product={id:'dish',name:'Noodles',category:'RESTAURANT',categoryId:'RESTAURANT',brand:null,gstRateBasisPoints:500,apparelGst:false,available:true,tracksStock:false,stockUnit:'UNIT',createdAt:1,updatedAt:1,variants:[{id:'dish-v',size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0}]};
+  await db.saveProduct(product,[]);const line={productId:'dish',variantId:'dish-v',name:'Noodles',variantLabel:'',barcode:'',quantity:2,unitPricePaise:'1000',mrpPaise:null,stockUnit:'UNIT' as const,lineDiscountPaise:'0',billDiscountSharePaise:'0',discountPaise:'0',discountReason:null,taxablePaise:'2000',gstRateBasisPoints:500,cgstPaise:'50',sgstPaise:'50',igstPaise:'0',totalPaise:'2100'};const draft={type:'SALE',roundedToRupee:true,lines:[line],subtotalPaise:'2000',lineDiscountPaise:'0',billDiscountPaise:'0',discountPaise:'0',billDiscountReason:null,taxablePaise:'2000',cgstPaise:'50',sgstPaise:'50',igstPaise:'0',roundOffPaise:'100',grandTotalPaise:'2200',gstRegistered:true,pricesIncludeTax:false,interState:false,seller:{storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5',stateCode:'19'},customer:null,payments:[{method:'CASH' as const,amountPaise:'2200',reference:null,tenderedPaise:null,changePaise:null}]} as Omit<InvoiceRecord,'id'|'number'|'createdAt'>;
+  const sale=await db.saveSale(draft,'INV',new Date('2026-11-01T12:00:00Z'));expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(0);expect(await db.listMovements()).toEqual([]);expect(sale.lines[0]?.quantity).toBe(2);
+  await db.saveReturn(sale.id,[2],'CASH','Customer changed mind','CN',new Date('2026-11-01T12:01:00Z'));expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(0);expect(await db.listMovements()).toEqual([]);
+  await db.updateProduct({...product,available:false},[]);await expect(db.saveSale(draft,'INV',new Date('2026-11-01T12:02:00Z'))).rejects.toThrow(/currently unavailable/);expect((await db.listInvoices()).length).toBe(2);await db.close();
 });
 it('saves invoice, sale movement and stock deduction atomically',async()=>{
   const db=new LocalDatabase('test-sale-atomic');const now=Date.now();
