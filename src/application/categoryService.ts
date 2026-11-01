@@ -11,4 +11,7 @@ export class CategoryService{
  async rename(id:string,name:string){await this.auth.require('MANAGE_SETTINGS');return this.db.renameCategory(id,name,this.auth.getSnapshot());}
  async setEnabled(id:string,enabled:boolean){await this.auth.require('MANAGE_SETTINGS');return this.db.setCategoryEnabled(id,enabled,this.auth.getSnapshot());}
  async remove(id:string){await this.auth.require('MANAGE_SETTINGS');return this.db.deleteCategory(id,this.auth.getSnapshot());}
+ async addSubcategory(categoryId:string,name:string){await this.auth.require('MANAGE_SETTINGS');return this.db.addSubcategory(categoryId,name,this.auth.getSnapshot());}
+ async renameSubcategory(categoryId:string,subcategoryId:string,name:string){await this.auth.require('MANAGE_SETTINGS');return this.db.renameSubcategory(categoryId,subcategoryId,name,this.auth.getSnapshot());}
+ async removeSubcategory(categoryId:string,subcategoryId:string){await this.auth.require('MANAGE_SETTINGS');return this.db.deleteSubcategory(categoryId,subcategoryId,this.auth.getSnapshot());}
 }

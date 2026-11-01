@@ -51,7 +51,8 @@ PRODUCTS AND INVENTORY
 [Done] Restaurant product availability controls whether a menu item can be added to a bill.
 [Done] Restaurant products can opt out of stock tracking; billing remains available,
     while stock movements, purchasing, stock counts, and stock reports exclude them.
-[ ] Product subcategories, including restaurant menu sections.
+[Done] Product subcategories, including restaurant menu sections, category-scoped name
+      management, product assignment, rename propagation, and POS grouping.
 [ ] Electronics warranty duration.
 [ ] Pharmacy prescription-required flag.
 [ ] Jewellery metal and making-charge fields.
@@ -123,17 +124,13 @@ EXPLICITLY OUT OF SCOPE (DO NOT IMPLEMENT)
 
 LATEST COMPLETED CHANGE
 -----------------------
-Product editing for currently represented web fields: details, GST/HSN, and variants.
-Saved products keep their category; existing variant IDs, on-hand stock, and batch data
-are preserved; removing a stocked variant is blocked; newly added variants record opening
-stock. This does not yet edit the specialty product fields listed above.
-
-Restaurant product availability and optional stock tracking are now carried through
+Restaurant product availability and optional stock tracking are carried through
 product create/edit, POS, held bills, sale and return transactions, stock adjustments,
-purchases, stock counts, and stock reports. Older products/backups retain compatible
-defaults. This change does not yet implement product subcategories or other specialty
-product fields.
+purchases, stock counts, and stock reports. Product subcategories are managed per
+category, assignable to restaurant products, propagated on rename, and grouped in POS.
+Deleting a menu section leaves existing product labels intact. Older records/backups
+retain compatible defaults. Remaining specialty product fields are still pending.
 
-Latest web commit: Restaurant availability and optional stock tracking.
-Checks for this change: typecheck passed; 24 test files / 90 tests passed; production
+Latest web commit: Restaurant product sections and POS grouping.
+Checks for these changes: typecheck passed; 24 test files / 92 tests passed; production
 build passed. The build reports a bundle-size warning above 500 kB; it does not fail.

@@ -16,6 +16,9 @@ it('commits store details and reloads them through a new connection',async()=>{
   expect(await reopened.load()).toEqual({storeName:'Example',address:'Road'});
   await reopened.close();
 });
+it('manages restaurant menu sections, propagates renames to products, and preserves labels on removal',async()=>{
+  const db=new LocalDatabase('test-menu-sections'),actor=null;const category=(await db.listCategories()).find(row=>row.profile==='RESTAURANT')!;const starter=await db.addSubcategory(category.id,'Starters',actor);const product:Product={id:'section-dish',name:'Soup',category:'RESTAURANT',categoryId:category.id,subcategory:starter.name,brand:null,gstRateBasisPoints:500,apparelGst:false,stockUnit:'UNIT',available:true,tracksStock:false,createdAt:1,updatedAt:1,variants:[{id:'section-v',size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0}]};await db.saveProduct(product,[]);await expect(db.addSubcategory(category.id,' starters ',actor)).rejects.toThrow(/already used/);await db.renameSubcategory(category.id,starter.id,'Small plates',actor);expect((await db.listProducts())[0]?.subcategory).toBe('Small plates');await db.deleteSubcategory(category.id,starter.id,actor);expect((await db.listCategories()).find(row=>row.id===category.id)?.subcategories).toEqual([]);expect((await db.listProducts())[0]?.subcategory).toBe('Small plates');await db.close();
+});
 it('saves one immutable day closing per business date and includes it in snapshots',async()=>{
   const db=new LocalDatabase('test-day-close');const date='2026-11-01';
   const closing={figures:buildDayFigures(date,[],[]),countedCashPaise:'0',note:null,closedAt:Date.now(),closedBy:'admin'};
