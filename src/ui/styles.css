@@ -3,3 +3,4 @@
 .inline-edit{display:flex;gap:4px;margin-top:5px}.inline-edit input{min-width:100px;width:115px}.inline-edit button{padding:7px}
 .auth-screen{max-width:520px;margin:8vh auto}.permission-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:0 12px}.employee-card{padding:18px;border:1px solid #d5dae1;margin:12px 0;border-radius:5px}.employee-card .button-row{align-items:center;flex-wrap:wrap}
 .recovery-code{font-family:ui-monospace,monospace;font-size:20px;font-weight:700;letter-spacing:.1em;padding:16px;background:#e9edf1;color:#202733;overflow-wrap:anywhere}
+.backup-preview{border:1px solid #a6b0bc;background:#f5f7f9;padding:20px;margin-top:20px}

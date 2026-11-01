@@ -7,6 +7,7 @@ import type { BillingCustomer, CustomerLedgerEntry, InvoiceRecord } from '../dom
 import type { SalesStorage } from '../application/salesService';
 import { buildReturn, type RefundMethod } from '../domain/returns';
 import type { StoredAccount } from '../application/authService';
+import type { BusinessSnapshot } from '../domain/backup';
 interface GenesisSchema extends DBSchema {
   shop: { key: string; value: ShopIdentity };
   products: { key: string; value: Product };
@@ -45,6 +46,18 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
   async createEmployeeAccount(account:StoredAccount){const db=await this.connect();const tx=db.transaction('accounts','readwrite');await tx.store.add(account);await tx.done;}
   async updateAccount(account:StoredAccount){const db=await this.connect();const tx=db.transaction('accounts','readwrite');await tx.store.put(account);await tx.done;}
   async replaceRecoveryAccount(account:StoredAccount,expectedHash:string|null){const db=await this.connect();const tx=db.transaction('accounts','readwrite');const current=await tx.store.get(account.id);if(!current||current.role!=='SUPER_ADMIN'||(current.recovery?.hash??null)!==expectedHash){await tx.done;throw new Error('Recovery details changed. Try again.');}await tx.store.put(account);await tx.done;}
+  async snapshot():Promise<BusinessSnapshot>{const db=await this.connect();const tx=db.transaction(['shop','products','movements','invoices','customers','customerLedger','accounts'],'readonly');const [shop,products,movements,invoices,customers,customerLedger,accounts]=await Promise.all([tx.objectStore('shop').get('identity'),tx.objectStore('products').getAll(),tx.objectStore('movements').getAll(),tx.objectStore('invoices').getAll(),tx.objectStore('customers').getAll(),tx.objectStore('customerLedger').getAll(),tx.objectStore('accounts').getAll()]);await tx.done;return {shop:shop??null,products,movements,invoices,customers,customerLedger,accounts};}
+  async replaceSnapshot(data:BusinessSnapshot){const db=await this.connect();const tx=db.transaction(['shop','products','movements','invoices','customers','customerLedger','accounts'],'readwrite');
+    for(const name of ['shop','products','movements','invoices','customers','customerLedger','accounts'] as const)await tx.objectStore(name).clear();
+    if(data.shop)await tx.objectStore('shop').put(data.shop,'identity');
+    for(const item of data.products)await tx.objectStore('products').add(item);
+    for(const item of data.movements)await tx.objectStore('movements').add(item);
+    for(const item of data.invoices)await tx.objectStore('invoices').add(item);
+    for(const item of data.customers)await tx.objectStore('customers').add(item);
+    for(const item of data.customerLedger)await tx.objectStore('customerLedger').add(item);
+    for(const item of data.accounts)await tx.objectStore('accounts').add(item);
+    await tx.done;
+  }
   async updateTax(productId:string,rate:number|null,apparel:boolean) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,gstRateBasisPoints:rate,apparelGst:apparel,updatedAt:Date.now()});await tx.done;}
   async updateHsn(productId:string,hsn:string|null) {const db=await this.connect();const tx=db.transaction('products','readwrite');const store=tx.objectStore('products');const product=await store.get(productId);if(!product){await tx.done;throw new Error('Product no longer exists.');}await store.put({...product,hsnCode:hsn,updatedAt:Date.now()});await tx.done;}
   async listMovements() { return (await (await this.connect()).getAll('movements')).sort((a,b)=>b.createdAt-a.createdAt); }
