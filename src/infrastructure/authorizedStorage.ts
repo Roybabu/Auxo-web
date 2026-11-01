@@ -8,10 +8,12 @@ import type { BillingCustomer, CustomerLedgerEntry, InvoiceRecord } from '../dom
 import { discountExceeds } from '../domain/access';
 import type { RefundMethod } from '../domain/returns';
 import type { HeldBillDraft } from '../domain/heldBills';
+import type { Supplier, PurchaseOrder, PurchaseReceipt, PurchaseStatus } from '../domain/purchasing';
+import type { PurchasingStorage } from '../application/purchasingService';
 import { LocalDatabase } from './localDatabase';
 
 /** The UI and business services receive this boundary, never the raw browser store. */
-export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorage {
+export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorage,PurchasingStorage {
   constructor(private readonly raw:LocalDatabase,private readonly auth:AuthService){}
   async load(){await this.auth.require('SELL');return this.raw.load();}
   async save(shop:ShopIdentity){await this.auth.require('MANAGE_SETTINGS');return this.raw.save(shop);}
@@ -37,5 +39,13 @@ export class AuthorizedStorage implements ShopStorage,CatalogStorage,SalesStorag
       if(discountExceeds(BigInt(draft.subtotalPaise),BigInt(draft.discountPaise),lineDiscounts,limit))throw new Error('Employee discount exceeds the permitted limit.');
     }return this.raw.saveSale(draft,prefix,date,heldBillId);
   }
+  async listProductsForPurchasing(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listProducts();}
+  async listSuppliers(){await this.auth.require('MANAGE_SUPPLIERS');return this.raw.listSuppliers();}
+  async saveSupplier(supplier:Supplier){await this.auth.require('MANAGE_SUPPLIERS');return this.raw.saveSupplier(supplier);}
+  async listPurchaseOrders(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listPurchaseOrders();}
+  async savePurchaseOrder(order:Omit<PurchaseOrder,'id'|'number'|'createdAt'>,id?:string){await this.auth.require('MANAGE_PURCHASES');return this.raw.savePurchaseOrder(order,id);}
+  async updatePurchaseStatus(id:string,status:PurchaseStatus){await this.auth.require('MANAGE_PURCHASES');return this.raw.updatePurchaseStatus(id,status);}
+  async listPurchaseReceipts(){await this.auth.require('MANAGE_PURCHASES');return this.raw.listPurchaseReceipts();}
+  async receivePurchase(receipt:Omit<PurchaseReceipt,'id'|'number'|'receivedAt'>,date?:number){await this.auth.require('RECEIVE_GOODS');return this.raw.receivePurchase(receipt,date);}
   async saveReturn(invoiceId:string,quantities:number[],method:RefundMethod,reason:string,prefix:string,date:Date){await this.auth.require('PROCESS_RETURN');return this.raw.saveReturn(invoiceId,quantities,method,reason,prefix,date);}
 }

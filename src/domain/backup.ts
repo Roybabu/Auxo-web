@@ -3,9 +3,10 @@ import type { Product, StockMovement } from './catalog';
 import type { BillingCustomer, CustomerLedgerEntry, InvoiceRecord } from './billing';
 import type { StoredAccount } from '../application/authService';
 import type { HeldBill } from './heldBills';
+import type { Supplier, PurchaseOrder, PurchaseReceipt } from './purchasing';
 
-export type BusinessSnapshot={shop:ShopIdentity|null;products:Product[];movements:StockMovement[];invoices:InvoiceRecord[];customers:BillingCustomer[];customerLedger:CustomerLedgerEntry[];accounts:StoredAccount[];heldBills:HeldBill[]};
-export type PortableBackup={app:'auxo-web-genesis';format:1;createdAt:number;databaseVersion:7;data:BusinessSnapshot};
+export type BusinessSnapshot={shop:ShopIdentity|null;products:Product[];movements:StockMovement[];invoices:InvoiceRecord[];customers:BillingCustomer[];customerLedger:CustomerLedgerEntry[];accounts:StoredAccount[];heldBills:HeldBill[];suppliers:Supplier[];purchaseOrders:PurchaseOrder[];purchaseReceipts:PurchaseReceipt[]};
+export type PortableBackup={app:'auxo-web-genesis';format:1;createdAt:number;databaseVersion:8;data:BusinessSnapshot};
 export type BackupSummary={createdAt:number;storeName:string;products:number;invoices:number;customers:number;employees:number};
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const id=(value:unknown)=>typeof value==='string'&&value.length>0&&value.length<=200;
@@ -15,10 +16,10 @@ function unique(values:string[]){return new Set(values).size===values.length;}
 /** Validate structure and relationships before any store is cleared. Older web formats are not guessed. */
 export function validateBackup(value:unknown):PortableBackup{
   if(!object(value)||value.app!=='auxo-web-genesis'||value.format!==1)throw new Error('This is not a supported AUXO Web backup.');
-  if(value.databaseVersion!==6&&value.databaseVersion!==7)throw new Error('This backup uses a different database version.');
+  if(value.databaseVersion!==6&&value.databaseVersion!==7&&value.databaseVersion!==8)throw new Error('This backup uses a different database version.');
   if(!Number.isSafeInteger(value.createdAt)||Number(value.createdAt)<=0||!object(value.data))throw new Error('Backup metadata is invalid.');
-  const d=value.data;if(value.databaseVersion===6&&!Array.isArray(d.heldBills))d.heldBills=[];
-  const names=['products','movements','invoices','customers','customerLedger','accounts','heldBills'] as const;
+  const d=value.data;if(value.databaseVersion<7&&!Array.isArray(d.heldBills))d.heldBills=[];if(value.databaseVersion<8){if(!Array.isArray(d.suppliers))d.suppliers=[];if(!Array.isArray(d.purchaseOrders))d.purchaseOrders=[];if(!Array.isArray(d.purchaseReceipts))d.purchaseReceipts=[];}
+  const names=['products','movements','invoices','customers','customerLedger','accounts','heldBills','suppliers','purchaseOrders','purchaseReceipts'] as const;
   if(names.some(name=>!Array.isArray(d[name])))throw new Error('Backup tables are missing.');
   if(d.shop!==null&&(!object(d.shop)||typeof d.shop.storeName!=='string'||!d.shop.storeName.trim()||typeof d.shop.address!=='string'))throw new Error('Business settings in backup are invalid.');
   const rows=d as Record<string,unknown[]>;for(const name of names){if(rows[name]!.some(row=>!object(row)||!id(row.id))||!unique(rows[name]!.map(row=>(row as {id:string}).id)))throw new Error(`Backup ${name} contains invalid or duplicate IDs.`);}
@@ -31,8 +32,11 @@ export function validateBackup(value:unknown):PortableBackup{
   for(const m of rows.movements as unknown as StockMovement[])if(!variantIds.has(m.variantId)||!Number.isSafeInteger(m.quantityChange))throw new Error('Backup stock movement is invalid.');
   for(const entry of rows.customerLedger as unknown as CustomerLedgerEntry[])if(!customerIds.has(entry.customerId)||entry.invoiceId&&!invoiceIds.has(entry.invoiceId)||!money(entry.amountPaise))throw new Error('Backup customer statement is invalid.');
   for(const bill of rows.heldBills as unknown as HeldBill[])if(typeof bill.label!=='string'||!Array.isArray(bill.lines)||!money(bill.totalPaise)||bill.tableNumber!==null&&(!Number.isInteger(bill.tableNumber)||bill.tableNumber<1||bill.tableNumber>99)||bill.lines.some(line=>!variantIds.has(line.variantId)))throw new Error('Backup held bill is invalid.');
+  const supplierIds=new Set((rows.suppliers as unknown as Supplier[]).map(s=>s.id));const supplierNames=new Set<string>();for(const s of rows.suppliers as unknown as Supplier[])if(typeof s.name!=='string'||!s.name.trim())throw new Error('Backup supplier is invalid.');
+  for(const order of rows.purchaseOrders as unknown as PurchaseOrder[])if(!supplierIds.has(order.supplierId)||!Array.isArray(order.lines)||order.lines.some(l=>l.variantId!==null&&!variantIds.has(l.variantId)))throw new Error('Backup purchase order is invalid.');
+  for(const receipt of rows.purchaseReceipts as unknown as PurchaseReceipt[])if(receipt.supplierId&&!supplierIds.has(receipt.supplierId)||!Array.isArray(receipt.lines)||receipt.lines.some(l=>!variantIds.has(l.variantId)))throw new Error('Backup purchase receipt is invalid.');
   if(accounts.filter(a=>a.role==='SUPER_ADMIN').length!==1||accounts.find(a=>a.role==='SUPER_ADMIN')?.active!==true||!unique(accounts.map(a=>a.identifier)))throw new Error('Backup must contain one active Super Admin and unique logins.');
   for(const a of accounts)if(!id(a.identifier)||!id(a.name)||!['SUPER_ADMIN','EMPLOYEE'].includes(a.role)||typeof a.active!=='boolean'||!Array.isArray(a.granted)||!/^[a-f0-9]{32}$/.test(a.salt)||!/^[a-f0-9]{64}$/.test(a.hash)||!Number.isInteger(a.iterations)||a.iterations<100_000||a.iterations>5_000_000||a.recovery&&(!/^[a-f0-9]{32}$/.test(a.recovery.salt)||!/^[a-f0-9]{64}$/.test(a.recovery.hash)||!Number.isInteger(a.recovery.iterations)||a.recovery.iterations<100_000||a.recovery.iterations>5_000_000))throw new Error('Backup account is invalid.');
-  return {...value,databaseVersion:7,data:d as unknown as BusinessSnapshot} as PortableBackup;
+  return {...value,databaseVersion:8,data:d as unknown as BusinessSnapshot} as PortableBackup;
 }
 export function summarizeBackup(backup:PortableBackup):BackupSummary{return {createdAt:backup.createdAt,storeName:backup.data.shop?.storeName??'Unnamed business',products:backup.data.products.length,invoices:backup.data.invoices.length,customers:backup.data.customers.length,employees:backup.data.accounts.filter(a=>a.role==='EMPLOYEE').length};}

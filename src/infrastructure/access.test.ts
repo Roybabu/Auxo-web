@@ -33,11 +33,12 @@ it('requires login and checks employee access at the storage boundary',async()=>
   await expect(secured.listMovements()).rejects.toThrow(/VIEW_STOCK_RECORDS/);
   await expect(secured.save({storeName:'Changed',address:''})).rejects.toThrow(/MANAGE_SETTINGS/);
   await expect(secured.saveReturn('missing',[1],'CASH','','CN',new Date())).rejects.toThrow(/PROCESS_RETURN/);
+  await expect(secured.listProductsForPurchasing()).rejects.toThrow(/MANAGE_PURCHASES/);
   const line={productId:'p',variantId:'v',name:'Item',variantLabel:'',barcode:'',quantity:1,unitPricePaise:'1000',mrpPaise:null,stockUnit:'UNIT' as const,lineDiscountPaise:'100',billDiscountSharePaise:'0',discountPaise:'100',discountReason:'Offer',taxablePaise:'900',gstRateBasisPoints:0,cgstPaise:'0',sgstPaise:'0',igstPaise:'0',totalPaise:'900'};
   const draft={type:'SALE' as const,roundedToRupee:false,lines:[line],subtotalPaise:'1000',lineDiscountPaise:'100',billDiscountPaise:'0',discountPaise:'100',billDiscountReason:null,taxablePaise:'900',cgstPaise:'0',sgstPaise:'0',igstPaise:'0',roundOffPaise:'0',grandTotalPaise:'900',gstRegistered:false,pricesIncludeTax:false,interState:false,seller:{storeName:'Shop',address:'',gstin:'',stateCode:''},customer:null,payments:[{method:'CASH' as const,amountPaise:'900',reference:null,tenderedPaise:null,changePaise:null}]};
   await expect(secured.saveSale(draft,'INV',new Date())).rejects.toThrow(/discount exceeds/);
   expect((await db.listInvoices()).length).toBe(0);
-  auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['PROCESS_RETURN']);await auth.setActive(employee.id,false);
+  auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['MANAGE_PURCHASES']);auth.signOut();await auth.signIn('cashier','BlueRiverSecret91');expect(auth.can('MANAGE_SUPPLIERS')).toBe(true);expect(await secured.listProductsForPurchasing()).toEqual([]);await expect(secured.saveSupplier({id:'s',name:'Supplier',contactPerson:null,phone:null,email:null,gstin:null,stateCode:null,address:null,notes:null,active:true,createdAt:Date.now()})).resolves.toBeUndefined();auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['PROCESS_RETURN']);await auth.setActive(employee.id,false);
   auth.signOut();await expect(auth.signIn('cashier','BlueRiverSecret91')).rejects.toThrow(/deactivated/);
   await db.close();
 });
