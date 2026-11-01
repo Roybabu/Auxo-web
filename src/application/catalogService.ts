@@ -1,8 +1,8 @@
 import { manualStockChange, parseGstRate, validateHsn, validateProduct, type Product, type ProductInput, type MovementReason, type StockMovement } from '../domain/catalog';
-import type {StockBatch} from '../domain/batches';
+import type {BatchTake,StockBatch} from '../domain/batches';
 import type {AuditWrite} from '../domain/audit';
 export type DeleteProductResult={status:'DELETED';product:Product}|{status:'NOT_FOUND'}|{status:'STOCK_ON_HAND';units:number};
-export interface CatalogStorage {listProducts():Promise<Product[]>;saveProduct(product:Product,movements:StockMovement[],audit?:AuditWrite):Promise<void>;deleteProduct(productId:string):Promise<DeleteProductResult>;listMovements():Promise<StockMovement[]>;listStockBatches():Promise<StockBatch[]>;adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batch?:Pick<StockBatch,'batchNumber'|'expiryDate'>,batchId?:string|null,audit?:AuditWrite):Promise<void>;updateTax(productId:string,rate:number|null,apparel:boolean,audit?:AuditWrite):Promise<void>;updateHsn(productId:string,hsn:string|null,audit?:AuditWrite):Promise<void>}
+export interface CatalogStorage {listProducts():Promise<Product[]>;saveProduct(product:Product,movements:StockMovement[],audit?:AuditWrite):Promise<void>;deleteProduct(productId:string):Promise<DeleteProductResult>;listMovements():Promise<StockMovement[]>;listStockBatches():Promise<StockBatch[]>;adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batch?:Pick<StockBatch,'batchNumber'|'expiryDate'>,batchId?:string|null,audit?:(targets:BatchTake[]|null)=>AuditWrite[]):Promise<void>;updateTax(productId:string,rate:number|null,apparel:boolean,audit?:AuditWrite):Promise<void>;updateHsn(productId:string,hsn:string|null,audit?:AuditWrite):Promise<void>}
 export class CatalogService {
  constructor(private storage:CatalogStorage){}
  listProducts(){return this.storage.listProducts()}

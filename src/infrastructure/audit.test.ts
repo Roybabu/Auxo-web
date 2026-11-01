@@ -68,9 +68,21 @@ it('rolls back stock changes and movements when stock auditing fails',async()=>{
  try{
   await db.recordAudit(null,'STOCK_CHANGED','variant','existing','Existing audit row');
   random.mockImplementationOnce(()=> '00000000-0000-4000-8000-000000000022').mockImplementationOnce(()=>collision);
-  await expect(db.adjustStock('stock-variant',-1,'DAMAGED','Broken items',undefined,undefined,{actor:null,action:'STOCK_WRITTEN_OFF',entityType:'variant',entityId:'stock-variant',summary:'Wrote off 1 (damaged)'})).rejects.toBeDefined();
+  await expect(db.adjustStock('stock-variant',-1,'DAMAGED','Broken items',undefined,undefined,()=>[{actor:null,action:'STOCK_WRITTEN_OFF',entityType:'variant',entityId:'stock-variant',summary:'Wrote off 1 (damaged)'}])).rejects.toBeDefined();
   expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(5);expect(await db.listMovements()).toEqual([]);expect(await db.listRecentAudit()).toHaveLength(1);
  }finally{random.mockRestore();await db.close();}
+});
+
+it('records a separate batch audit entry for every batch consumed by a write-off',async()=>{
+ const db=new LocalDatabase(`audit-batch-writeoff-${crypto.randomUUID()}`),auth=new AuthService(db),now=Date.now();
+ const product:Product={id:'batch-product',name:'Medicine',category:'PHARMACY',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'batch-variant',size:'',colour:'',sku:'MED',barcode:'',price:'1.00',mrp:'',cost:'',opening:'2',lowStock:'0',pricePaise:'100',mrpPaise:null,costPaise:null,stock:2,lowStockThreshold:0,batchNumber:'LOT-A',expiryDate:'2027-01-01'}]};
+ await db.saveProduct(product,[]);await db.adjustStock('batch-variant',3,'RECEIVED',null,{batchNumber:'LOT-B',expiryDate:'2028-01-01'});
+ const batches=await db.listStockBatches(),first=batches.find(row=>row.batchNumber==='LOT-A')!,second=batches.find(row=>row.batchNumber==='LOT-B')!;
+ await auth.setup('Owner','owner.batch','Strong-Password-684','Strong-Password-684');const secured=new AuthorizedStorage(db,auth);
+ await secured.adjustStock('batch-variant',-4,'DAMAGED','Broken stock');
+ const events=(await db.listRecentAudit()).filter(row=>row.action==='STOCK_WRITTEN_OFF');
+ expect(events).toHaveLength(2);expect(events).toEqual(expect.arrayContaining([expect.objectContaining({entityType:'batch',entityId:first.id,summary:'Wrote off 2 (damaged)'}),expect.objectContaining({entityType:'batch',entityId:second.id,summary:'Wrote off 2 (damaged)'})]));
+ expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(1);await db.close();
 });
 
 it('rolls back a new administrator account when its sign-in audit fails',async()=>{

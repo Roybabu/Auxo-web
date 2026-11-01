@@ -14,7 +14,7 @@ import type { Supplier, PurchaseOrder, PurchaseReceipt, PurchaseStatus } from '.
 import { purchaseNumber } from '../domain/purchasing';
 import { formatMoney } from '../domain/money';
 import type { DayClosing } from '../domain/dayEnd';
-import { allocateBatches, placeBatchReturn, type StockBatch } from '../domain/batches';
+import { allocateBatches, placeBatchReturn, type BatchTake, type StockBatch } from '../domain/batches';
 import { buildDayFigures } from '../domain/dayEnd';
 import type {AuditAction,AuditEntity,AuditRecord,AuditWrite,AuditFactory} from '../domain/audit';
 import type {CountReason,StockCountRecord,StockCountApplyResult} from '../domain/stockCount';
@@ -161,16 +161,17 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
     if(audit)await this.addAudit(tx,audit);await tx.done;
   }
   async listStockBatches(){const db=await this.connect(),tx=db.transaction(['stockBatches','products'],'readwrite'),store=tx.objectStore('stockBatches'),rows=await store.getAll(),products=await tx.objectStore('products').getAll();for(const p of products)if(['PACKAGED_FOOD','BEVERAGE','PHARMACY','COSMETICS'].includes(p.category))for(const v of p.variants){const current=rows.filter(b=>b.variantId===v.id).reduce((n,b)=>n+b.quantity,0);if(current<v.stock){const missing=v.stock-current;const b:StockBatch={id:crypto.randomUUID(),variantId:v.id,batchNumber:null,expiryDate:null,quantity:missing,receivedAt:p.createdAt,unitCostPaise:v.costPaise??null};await store.add(b);rows.push(b);}}await tx.done;return rows.sort((a,b)=>(a.expiryDate??'9999-12-31').localeCompare(b.expiryDate??'9999-12-31')||a.receivedAt-b.receivedAt);}
-  async adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batchDetails:Pick<StockBatch,'batchNumber'|'expiryDate'>={batchNumber:null,expiryDate:null},targetBatchId?:string|null,audit?:AuditWrite) {
+  async adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batchDetails:Pick<StockBatch,'batchNumber'|'expiryDate'>={batchNumber:null,expiryDate:null},targetBatchId?:string|null,audit?:(targets:BatchTake[]|null)=>AuditWrite[]) {
     const db=await this.connect(); const tx=db.transaction(['products','movements','stockBatches','auditLog'],'readwrite'); const store=tx.objectStore('products');
     const products=await store.getAll(); const product=products.find(p=>p.variants.some(v=>v.id===variantId));
     if(!product) {await tx.done; throw new Error('Variant no longer exists.');}
     const variants=product.variants.map(v=>v.id===variantId?{...v,stock:v.stock+change}:v);
     await store.put({...product,variants,updatedAt:Date.now()});const movements=tx.objectStore('movements'),batches=tx.objectStore('stockBatches'),tracked=['PACKAGED_FOOD','BEVERAGE','PHARMACY','COSMETICS'].includes(product.category),now=Date.now();
+    let affectedBatches:BatchTake[]|null=null;
     if(!tracked){await movements.add({id:crypto.randomUUID(),variantId,quantityChange:change,reason,note,createdAt:now});}
     else if(change>0){let batch=await batches.index('by-variant').getAll(variantId);let target=batch.find(b=>b.batchNumber===(batchDetails.batchNumber||null)&&b.expiryDate===(batchDetails.expiryDate||null));if(target){await batches.put({...target,quantity:target.quantity+change});}else{target={id:crypto.randomUUID(),variantId,batchNumber:batchDetails.batchNumber||null,expiryDate:batchDetails.expiryDate||null,quantity:change,receivedAt:now,unitCostPaise:product.variants.find(v=>v.id===variantId)?.costPaise??null};await batches.add(target);}await movements.add({id:crypto.randomUUID(),variantId,quantityChange:change,reason,note,createdAt:now,batchId:target.id});}
-    else {const batchRows=await batches.index('by-variant').getAll(variantId),takes=targetBatchId?[{batchId:targetBatchId,quantity:-change}]:allocateBatches(batchRows,-change,'0000-01-01');if(!takes){await tx.done;throw new Error('Batch stock does not match the variant on-hand count. Refresh inventory before adjusting stock.');}for(const take of takes){const row=await batches.get(take.batchId);if(!row||row.variantId!==variantId||row.quantity<take.quantity){await tx.done;throw new Error('The selected batch does not have enough stock.');}await batches.put({...row,quantity:row.quantity-take.quantity});await movements.add({id:crypto.randomUUID(),variantId,quantityChange:-take.quantity,reason,note,createdAt:now,batchId:take.batchId});}}
-    if(audit)await this.addAudit(tx,audit);await tx.done;
+    else {const batchRows=await batches.index('by-variant').getAll(variantId),takes=targetBatchId?[{batchId:targetBatchId,quantity:-change}]:allocateBatches(batchRows,-change,'0000-01-01');if(!takes){await tx.done;throw new Error('Batch stock does not match the variant on-hand count. Refresh inventory before adjusting stock.');}affectedBatches=takes;for(const take of takes){const row=await batches.get(take.batchId);if(!row||row.variantId!==variantId||row.quantity<take.quantity){await tx.done;throw new Error('The selected batch does not have enough stock.');}await batches.put({...row,quantity:row.quantity-take.quantity});await movements.add({id:crypto.randomUUID(),variantId,quantityChange:-take.quantity,reason,note,createdAt:now,batchId:take.batchId});}}
+    if(audit)for(const write of audit(affectedBatches))await this.addAudit(tx,write);await tx.done;
   }
   async saveSale(draft:Omit<InvoiceRecord,'id'|'number'|'createdAt'>,prefix:string,date:Date,heldBillId?:string,audit?:AuditFactory<InvoiceRecord>):Promise<InvoiceRecord> {
     const db=await this.connect();const tx=db.transaction(['products','movements','invoices','customers','customerLedger','heldBills','loyaltySettings','loyaltyLedger','stockBatches','auditLog'],'readwrite');const productStore=tx.objectStore('products');
