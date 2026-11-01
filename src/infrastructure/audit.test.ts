@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import {expect,it} from 'vitest';
+import {expect,it,vi} from 'vitest';
 import {LocalDatabase} from './localDatabase';
 import {AuthService} from '../application/authService';
 import {ActivityLogService} from '../application/activityLogService';
@@ -33,4 +33,16 @@ it('records a stock write-off with the matching Android audit action',async()=>{
  await db.saveProduct(product,[]);const secured=new AuthorizedStorage(db,auth);await secured.adjustStock('v',-2,'DAMAGED','Broken items');
  const event=(await db.listRecentAudit()).find(row=>row.entityId==='v');expect(event).toMatchObject({action:'STOCK_WRITTEN_OFF',summary:'Wrote off 2 (damaged)'});
  await db.close();
+});
+
+it('rolls back a product write when its audit row cannot be added',async()=>{
+ const db=new LocalDatabase(`audit-rollback-${crypto.randomUUID()}`),now=Date.now();
+ const random=vi.spyOn(crypto,'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
+ try{
+  await db.recordAudit(null,'PRODUCT_SAVED','product','existing','Existing audit row');
+  const product:Product={id:'rollback-product',name:'Rollback tea',category:'GENERAL',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'rollback-variant',size:'',colour:'',sku:'',barcode:'',price:'1.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'100',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0}]};
+  await expect(db.saveProduct(product,[],{actor:null,action:'PRODUCT_SAVED',entityType:'product',entityId:product.id,summary:`Saved product ${product.name}`})).rejects.toBeDefined();
+  expect(await db.listProducts()).toEqual([]);
+  expect(await db.listRecentAudit()).toHaveLength(1);
+ }finally{random.mockRestore();await db.close();}
 });
