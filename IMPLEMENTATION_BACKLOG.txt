@@ -66,7 +66,9 @@ PRODUCTS AND INVENTORY
 [Done] Product fields audited against Android Product, ProductVariant, ProductForm and CSV ImportColumn. Android-defined fields have editor/storage/backup validation; Android-supported CSV columns are represented; product, billing and inventory views use the relevant values. No extra CSV columns were added for fields Android itself does not import.
 
 BILLING AND DOCUMENTS
-[ ] Quotations: create/save, list/load, expiry/validity, repricing and conversion to sale.
+[Done] Quotations: create/save with 7/15/30-day validity, list/load, expiry display,
+      current-catalogue repricing, conversion to sale, separate numbering, and encrypted
+      backup/restore. Saving does not create an invoice or change stock.
 [ ] Desktop/browser receipt and invoice printing equivalent to Android document output,
     including invoice, quotation, and credit-note layouts and print settings.
     Android Bluetooth pairing/permission behavior remains excluded.
@@ -126,12 +128,9 @@ EXPLICITLY OUT OF SCOPE (DO NOT IMPLEMENT)
 
 LATEST COMPLETED CHANGE
 -----------------------
-Restaurant availability and optional stock tracking, category subcategories and POS
-grouping are complete for this slice. Electronics products now support an optional
-warranty duration in whole months (1–120) through create/edit, display, and web backup
-validation. The value remains null for other categories and older products/backups.
-Other specialty product fields are still pending.
+Quotation workflow with separate numbering, validity/expiry, current-catalogue repricing,
+sale conversion and encrypted backup/restore is complete for this slice.
 
 Latest web commit: Preferred supplier and reorder-quantity product fields.
-Checks for these changes: typecheck passed; 24 test files / 97 tests passed; production
+Checks for this change: typecheck passed; 25 test files / 104 tests passed; production
 build passed. The build reports a bundle-size warning above 500 kB; it does not fail.

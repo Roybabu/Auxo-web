@@ -5,6 +5,7 @@ import { ShopService } from '../application/shopService';
 import type { Product } from '../domain/catalog';
 import type {InvoiceRecord} from '../domain/billing';
 import {buildDayFigures} from '../domain/dayEnd';
+import type {QuotationCart} from '../domain/quotations';
 it('commits store details and reloads them through a new connection',async()=>{
   const name = 'test-persistence';
   const db = new LocalDatabase(name);
@@ -15,6 +16,11 @@ it('commits store details and reloads them through a new connection',async()=>{
   const reopened = new LocalDatabase(name);
   expect(await reopened.load()).toEqual({storeName:'Example',address:'Road'});
   await reopened.close();
+});
+it('numbers quotations independently and stores them without changing inventory or invoices',async()=>{
+  const db=new LocalDatabase('test-quotation-store'),now=Date.now();const product:Product={id:'quote-product',name:'Mug',category:'GENERAL',categoryId:'GENERAL',brand:null,gstRateBasisPoints:0,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'quote-variant',size:'',colour:'',sku:'MUG',barcode:'',price:'10.00',mrp:'',cost:'',opening:'4',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:4,lowStockThreshold:0}]};await db.saveProduct(product,[]);
+  const cart:QuotationCart={lines:[{productId:product.id,variantId:'quote-variant',name:'Mug',variantLabel:'',barcode:'',quantity:2,unitPricePaise:'1000',mrpPaise:null,stockUnit:'UNIT',availableStock:4,gstRateBasisPoints:0,apparelGst:false,lineDiscount:null}],discount:{kind:'AMOUNT',value:'',reason:''},interState:false,customerId:'',buyerName:'Buyer',buyerPhone:'',buyerGstin:''};
+  const first=await db.saveQuotation(cart,'2000','2026-11-16'),second=await db.saveQuotation(cart,'2000','2026-11-16');expect(first.number).toMatch(/^QT\/\d{2}-\d{2}\/00001$/);expect(second.number).toMatch(/^QT\/\d{2}-\d{2}\/00002$/);expect((await db.listQuotations()).map(q=>q.id)).toEqual([second.id,first.id]);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(4);expect(await db.listInvoices()).toEqual([]);expect((await db.snapshot()).quotations).toHaveLength(2);await db.close();
 });
 it('manages restaurant menu sections, propagates renames to products, and preserves labels on removal',async()=>{
   const db=new LocalDatabase('test-menu-sections'),actor=null;const category=(await db.listCategories()).find(row=>row.profile==='RESTAURANT')!;const starter=await db.addSubcategory(category.id,'Starters',actor);const product:Product={id:'section-dish',name:'Soup',category:'RESTAURANT',categoryId:category.id,subcategory:starter.name,brand:null,gstRateBasisPoints:500,apparelGst:false,stockUnit:'UNIT',available:true,tracksStock:false,createdAt:1,updatedAt:1,variants:[{id:'section-v',size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0}]};await db.saveProduct(product,[]);await expect(db.addSubcategory(category.id,' starters ',actor)).rejects.toThrow(/already used/);await db.renameSubcategory(category.id,starter.id,'Small plates',actor);expect((await db.listProducts())[0]?.subcategory).toBe('Small plates');await db.deleteSubcategory(category.id,starter.id,actor);expect((await db.listCategories()).find(row=>row.id===category.id)?.subcategories).toEqual([]);expect((await db.listProducts())[0]?.subcategory).toBe('Small plates');await db.close();
