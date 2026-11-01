@@ -12,7 +12,7 @@ export class BackupService {
   constructor(private readonly storage:BackupStorage,private readonly auth:AuthService){}
   async export(passphrase:string):Promise<Blob>{
     await this.auth.require('BACKUP_AND_RESTORE');if(passphrase.length<10)throw new Error('Backup passphrase must be at least 10 characters.');
-    const backup:PortableBackup={app:'auxo-web-genesis',format:1,createdAt:Date.now(),databaseVersion:6,data:await this.storage.snapshot()};validateBackup(backup);
+    const backup:PortableBackup={app:'auxo-web-genesis',format:1,createdAt:Date.now(),databaseVersion:7,data:await this.storage.snapshot()};validateBackup(backup);
     const plaintext=new TextEncoder().encode(JSON.stringify(backup));if(plaintext.byteLength>maxBytes)throw new Error('Backup exceeds the current 100 MB web limit.');
     const header=new Uint8Array(headerSize);header.set(magic);header[8]=1;new DataView(header.buffer).setUint32(9,iterations,false);crypto.getRandomValues(header.subarray(13,29));crypto.getRandomValues(header.subarray(29,41));
     const secret=await key(passphrase,header.subarray(13,29),iterations);const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv:header.subarray(29,41) as BufferSource,additionalData:header as BufferSource},secret,plaintext as BufferSource);
