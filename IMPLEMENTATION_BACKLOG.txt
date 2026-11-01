@@ -61,7 +61,7 @@ PRODUCTS AND INVENTORY
       places), shown with the saved product.
 [Done] Preferred supplier and per-variant reorder-quantity product fields. Supplier choices
       are restricted to active suppliers; reorder amounts follow the product's stock unit.
-[ ] Product photos and per-colour photos.
+[Done] Product and per-colour photos: images are resized and compressed, stored in IndexedDB, shown in catalogue and billing, and included in encrypted web backup/restore.
 [ ] Full category-appropriate stock-unit selection and persistence where Android allows
     a unit choice. The current web product model has narrower stock-unit support.
 [ ] Bring these additional Android product fields into create, edit, CSV/backup handling,

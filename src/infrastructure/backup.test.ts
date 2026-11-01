@@ -39,3 +39,15 @@ it('blocks employee backup access at the service boundary',async()=>{
   await expect(backups.inspect(new Blob(['no']),'passphrase')).rejects.toThrow(/BACKUP_AND_RESTORE/);
   await db.close();
 });
+
+it('includes product and variant photo blobs in encrypted backup and restores them locally',async()=>{
+  const db=new LocalDatabase('test-backup-photos-'+crypto.randomUUID()),auth=new AuthService(db),backups=new BackupService(db,auth);
+  await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');await auth.startRecoveryCode().then(code=>auth.confirmRecoveryCode(code));
+  const productPhoto=new Blob([new Uint8Array([1,2,3,4])],{type:'image/jpeg'}),colourPhoto=new Blob([new Uint8Array([5,6,7])],{type:'image/jpeg'});
+  await db.saveProductPhoto('photo-product',productPhoto);await db.saveProductPhoto('photo-colour',colourPhoto);
+  const now=Date.now(),product:Product={id:'photo-product-row',name:'Shirt',category:'GARMENT',photoId:'photo-product',brand:null,gstRateBasisPoints:500,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'photo-variant',size:'M',colour:'Blue',photoId:'photo-colour',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'1',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:1,lowStockThreshold:0}]};
+  await db.saveProduct(product,[]);const exported=await backups.export('long backup phrase 91'),prepared=await backups.inspect(exported,'long backup phrase 91');expect(prepared.backup.data.productPhotos).toHaveLength(2);
+  await db.saveProductPhoto('unreferenced',new Blob([new Uint8Array([8])],{type:'image/jpeg'}));await backups.restore(prepared);
+  expect(new Uint8Array(await (await db.getProductPhoto('photo-product'))!.arrayBuffer())).toEqual(new Uint8Array([1,2,3,4]));expect(new Uint8Array(await (await db.getProductPhoto('photo-colour'))!.arrayBuffer())).toEqual(new Uint8Array([5,6,7]));expect(await db.getProductPhoto('unreferenced')).toBeNull();
+  await db.close();
+});

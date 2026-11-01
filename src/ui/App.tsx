@@ -32,11 +32,13 @@ import {CategoriesPage} from './CategoriesPage';
 import {CategorySetupPage} from './CategorySetupPage';
 import {ProductImportPage} from './ProductImportPage';
 import {LabelPrintPage} from './LabelPrintPage';
+import {ProductPhotoService} from '../application/productPhotoService';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured),sales=new SalesService(secured,secured);
 const backups=new BackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
 const activityLog=new ActivityLogService(database,auth);
+const productPhotos=new ProductPhotoService(database);
 const stockCount=new StockCountService(database,auth);
 const categories=new CategoryService(database,auth);
 const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['stock-count','Stock count','ADJUST_STOCK'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
@@ -60,10 +62,10 @@ export default function App(){
   </nav></aside><main><Routes>
     <Route path="/" element={<section><h1>AUXO Web</h1><p>Local business workspace. Choose a module from the navigation.</p></section>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
-    <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
-    <Route path="/restaurant" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} restaurantMode/></Guard>}/>
+    <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
+    <Route path="/restaurant" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} restaurantMode/></Guard>}/>
     <Route path="/customers" element={<Guard permission="MANAGE_CUSTOMERS"><CustomerAccountsPage sales={sales} canReceive={auth.can('RECEIVE_ACCOUNT_PAYMENT')}/></Guard>}/>
-    <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><ProductsPage service={catalog}/></Guard>}/>
+    <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><ProductsPage service={catalog} photos={productPhotos}/></Guard>}/>
     <Route path="/products/import" element={<Guard permission="MANAGE_PRODUCTS"><ProductImportPage service={catalog}/></Guard>}/>
     <Route path="/products/:productId/labels" element={<Guard permission="MANAGE_PRODUCTS"><LabelPrintPage service={catalog}/></Guard>}/>
     <Route path="/inventory" element={<Guard permission="VIEW_STOCK_RECORDS"><InventoryPage service={catalog}/></Guard>}/>
