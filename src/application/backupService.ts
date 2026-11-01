@@ -28,5 +28,5 @@ export class BackupService {
     let decoded:unknown;try{decoded=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(plain));}catch{throw new Error('Backup contents are damaged.');}
     const backup=validateBackup(decoded);return {backup,summary:summarizeBackup(backup)};
   }
-  async restore(prepared:PreparedBackup){await this.auth.require('BACKUP_AND_RESTORE');const backup=validateBackup(prepared.backup);await this.storage.replaceSnapshot(backup.data);this.auth.signOut();if(typeof window!=='undefined')try{window.localStorage.setItem('auxo-genesis-restored',String(Date.now()));}catch{/* Browser storage notifications are best effort after a completed restore. */}}
+  async restore(prepared:PreparedBackup){await this.auth.require('BACKUP_AND_RESTORE');const backup=validateBackup(prepared.backup);await this.storage.replaceSnapshot(backup.data);await this.auth.signOut();if(typeof window!=='undefined')try{window.localStorage.setItem('auxo-genesis-restored',String(Date.now()));}catch{/* Browser storage notifications are best effort after a completed restore. */}}
 }

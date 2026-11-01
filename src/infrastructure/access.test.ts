@@ -26,7 +26,7 @@ it('requires login and checks employee access at the storage boundary',async()=>
   await secured.save({storeName:'Shop',address:'',employeeDiscountLimitBp:0});
   await auth.createEmployee('Cashier','cashier','BlueRiverSecret91','BlueRiverSecret91',[]);
   const employee=(await auth.users()).find(u=>u.role==='EMPLOYEE')!;
-  auth.signOut();await expect(secured.save({storeName:'Changed',address:''})).rejects.toThrow(/Sign in/);
+  await auth.signOut();await expect(secured.save({storeName:'Changed',address:''})).rejects.toThrow(/Sign in/);
   await expect(auth.signIn('cashier','wrong')).rejects.toThrow(/incorrect/);
   await auth.signIn('CASHIER','BlueRiverSecret91');
   expect(auth.can('SELL')).toBe(true);expect(auth.can('PROCESS_RETURN')).toBe(false);
@@ -38,7 +38,7 @@ it('requires login and checks employee access at the storage boundary',async()=>
   const draft={type:'SALE' as const,roundedToRupee:false,lines:[line],subtotalPaise:'1000',lineDiscountPaise:'100',billDiscountPaise:'0',discountPaise:'100',billDiscountReason:null,taxablePaise:'900',cgstPaise:'0',sgstPaise:'0',igstPaise:'0',roundOffPaise:'0',grandTotalPaise:'900',gstRegistered:false,pricesIncludeTax:false,interState:false,seller:{storeName:'Shop',address:'',gstin:'',stateCode:''},customer:null,payments:[{method:'CASH' as const,amountPaise:'900',reference:null,tenderedPaise:null,changePaise:null}]};
   await expect(secured.saveSale(draft,'INV',new Date())).rejects.toThrow(/discount exceeds/);
   expect((await db.listInvoices()).length).toBe(0);
-  auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['MANAGE_PURCHASES']);auth.signOut();await auth.signIn('cashier','BlueRiverSecret91');expect(auth.can('MANAGE_SUPPLIERS')).toBe(true);expect(await secured.listProductsForPurchasing()).toEqual([]);await expect(secured.saveSupplier({id:'s',name:'Supplier',contactPerson:null,phone:null,email:null,gstin:null,stateCode:null,address:null,notes:null,active:true,createdAt:Date.now()})).resolves.toBeUndefined();auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['PROCESS_RETURN']);await auth.setActive(employee.id,false);
-  auth.signOut();await expect(auth.signIn('cashier','BlueRiverSecret91')).rejects.toThrow(/deactivated/);
+  await auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['MANAGE_PURCHASES']);await auth.signOut();await auth.signIn('cashier','BlueRiverSecret91');expect(auth.can('MANAGE_SUPPLIERS')).toBe(true);expect(await secured.listProductsForPurchasing()).toEqual([]);await expect(secured.saveSupplier({id:'s',name:'Supplier',contactPerson:null,phone:null,email:null,gstin:null,stateCode:null,address:null,notes:null,active:true,createdAt:Date.now()})).resolves.toBeUndefined();await auth.signOut();await auth.signIn('owner.user','StrongSecret91');await auth.setGrants(employee.id,['PROCESS_RETURN']);await auth.setActive(employee.id,false);
+  await auth.signOut();await expect(auth.signIn('cashier','BlueRiverSecret91')).rejects.toThrow(/deactivated/);
   await db.close();
 });

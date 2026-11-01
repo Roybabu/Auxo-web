@@ -34,7 +34,7 @@ it('encrypts a complete local snapshot, previews it, and restores it atomically'
 
 it('blocks employee backup access at the service boundary',async()=>{
   const db=new LocalDatabase('test-backup-permission-'+crypto.randomUUID()),auth=new AuthService(db),backups=new BackupService(db,auth);
-  await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');await auth.createEmployee('Cashier','cashier','BlueRiverSecret91','BlueRiverSecret91',[]);auth.signOut();await auth.signIn('cashier','BlueRiverSecret91');
+  await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');await auth.createEmployee('Cashier','cashier','BlueRiverSecret91','BlueRiverSecret91',[]);await auth.signOut();await auth.signIn('cashier','BlueRiverSecret91');
   await expect(backups.export('long backup phrase 91')).rejects.toThrow(/BACKUP_AND_RESTORE/);
   await expect(backups.inspect(new Blob(['no']),'passphrase')).rejects.toThrow(/BACKUP_AND_RESTORE/);
   await db.close();

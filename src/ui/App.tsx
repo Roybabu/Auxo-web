@@ -39,13 +39,13 @@ function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage 
 export default function App(){
   const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
   useEffect(()=>{auth.needsSetup().then(setSetup).catch(e=>setBootError(e instanceof Error?e.message:'Local accounts could not be opened.'));},[]);
-  useEffect(()=>{const onRestore=(event:StorageEvent)=>{if(event.key==='auxo-genesis-restored')auth.signOut();};window.addEventListener('storage',onRestore);return()=>window.removeEventListener('storage',onRestore);},[]);
+  useEffect(()=>{const onRestore=(event:StorageEvent)=>{if(event.key==='auxo-genesis-restored')void auth.signOut().catch(()=>{});};window.addEventListener('storage',onRestore);return()=>window.removeEventListener('storage',onRestore);},[]);
   useEffect(()=>{if(user)setSetup(false);},[user]);
   if(bootError)return <main className="auth-screen"><section><h1>Local data unavailable</h1><p role="alert">{bootError}</p></section></main>;
   if(setup===null)return <main className="auth-screen"><section>Opening local accounts…</section></main>;
   if(!user)return <AuthPage auth={auth} setup={setup}/>;
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
-  return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>auth.signOut()}>Sign out</button><nav aria-label="Main navigation">
+  return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button><nav aria-label="Main navigation">
     <NavLink to="/" end>Overview</NavLink>{modules.filter(([, ,permission])=>auth.can(permission)).map(([path,label])=><NavLink key={path} to={`/${path}`}>{label}</NavLink>)}
     {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
   </nav></aside><main><Routes>

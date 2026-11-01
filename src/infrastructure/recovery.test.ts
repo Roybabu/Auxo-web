@@ -20,7 +20,7 @@ it('confirms a setup code and atomically rotates it with an administrator passwo
   await auth.confirmRecoveryCode(first.toLowerCase().replaceAll('-',' '));
   expect(auth.getRecoveryPrompt()).toBeNull();
   const saved=(await db.listAccounts())[0]!;expect(saved.recovery?.hash).toBeTruthy();expect(JSON.stringify(saved)).not.toContain(normalizeRecoveryCode(first));
-  auth.signOut();
+  await auth.signOut();
   await expect(auth.resetAdminWithRecovery('WRONG','BlueOceanSecret92','BlueOceanSecret92')).rejects.toThrow(/incorrect/);
   const second=await auth.resetAdminWithRecovery(first,'BlueOceanSecret92','BlueOceanSecret92');
   expect(second).not.toBe(first);
@@ -28,15 +28,15 @@ it('confirms a setup code and atomically rotates it with an administrator passwo
   await expect(auth.resetAdminWithRecovery(first,'ThirdSecret93','ThirdSecret93')).rejects.toThrow(/incorrect/);
   await expect(auth.signIn('owner','RiverStoneSecret91')).rejects.toThrow(/incorrect/);
   await auth.signIn('owner','BlueOceanSecret92');expect(auth.getSnapshot()?.role).toBe('SUPER_ADMIN');
-  auth.signOut();const third=await auth.resetAdminWithRecovery(second,'ThirdSecret93','ThirdSecret93');expect(third).not.toBe(second);
+  await auth.signOut();const third=await auth.resetAdminWithRecovery(second,'ThirdSecret93','ThirdSecret93');expect(third).not.toBe(second);
   await db.close();
 });
 
 it('offers setup after sign-in to a prior account without a recovery code',async()=>{
   const db=new LocalDatabase('test-recovery-offer-'+crypto.randomUUID()),auth=new AuthService(db);
-  await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');auth.signOut();
+  await auth.setup('Owner','owner','RiverStoneSecret91','RiverStoneSecret91');await auth.signOut();
   await auth.signIn('owner','RiverStoneSecret91');expect(auth.getRecoveryPrompt()).toBe('offered');
   await expect(auth.startRecoveryCode('bad')).rejects.toThrow(/incorrect/);
   const code=await auth.startRecoveryCode('RiverStoneSecret91');await auth.confirmRecoveryCode(code);
-  auth.signOut();await auth.signIn('owner','RiverStoneSecret91');expect(auth.getRecoveryPrompt()).toBeNull();await db.close();
+  await auth.signOut();await auth.signIn('owner','RiverStoneSecret91');expect(auth.getRecoveryPrompt()).toBeNull();await db.close();
 });
