@@ -54,7 +54,9 @@ PRODUCTS AND INVENTORY
 [Done] Product subcategories, including restaurant menu sections, category-scoped name
       management, product assignment, rename propagation, and POS grouping.
 [Done] Optional electronics warranty duration in whole months, validated from 1 to 120.
-[ ] Pharmacy prescription-required flag.
+[Done] Pharmacy prescription-required product flag, limited to pharmacy products and
+      shown in the saved product list. It remains descriptive and does not block billing,
+      matching Android temp.
 [ ] Jewellery metal and making-charge fields.
 [ ] Preferred supplier and reorder-quantity product fields.
 [ ] Product photos and per-colour photos.
@@ -130,6 +132,6 @@ warranty duration in whole months (1–120) through create/edit, display, and we
 validation. The value remains null for other categories and older products/backups.
 Other specialty product fields are still pending.
 
-Latest web commit: Optional electronics warranty duration.
-Checks for these changes: typecheck passed; 24 test files / 93 tests passed; production
+Latest web commit: Pharmacy prescription-required product flag.
+Checks for these changes: typecheck passed; 24 test files / 94 tests passed; production
 build passed. The build reports a bundle-size warning above 500 kB; it does not fail.
