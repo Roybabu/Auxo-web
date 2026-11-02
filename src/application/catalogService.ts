@@ -2,11 +2,13 @@ import { manualStockChange, parseGstRate, validateHsn, validateProduct, type Pro
 import type {BatchTake,StockBatch} from '../domain/batches';
 import type {AuditWrite} from '../domain/audit';
 import type {ShopCategory} from '../domain/categories';
+import type {ShopStorage} from './shopService';
+import {withJewelleryPrices} from '../domain/jewellery';
 export type DeleteProductResult={status:'DELETED';product:Product}|{status:'NOT_FOUND'}|{status:'STOCK_ON_HAND';units:number};
 export interface CatalogStorage {listProducts():Promise<Product[]>;listCategories():Promise<ShopCategory[]>;listSuppliers?():Promise<import('../domain/purchasing').Supplier[]>;saveProduct(product:Product,movements:StockMovement[],audit?:AuditWrite):Promise<void>;updateProduct(product:Product,movements:StockMovement[],audit?:AuditWrite):Promise<void>;deleteProduct(productId:string):Promise<DeleteProductResult>;listMovements():Promise<StockMovement[]>;listStockBatches():Promise<StockBatch[]>;adjustStock(variantId:string,change:number,reason:MovementReason,note:string|null,batch?:Pick<StockBatch,'batchNumber'|'expiryDate'>,batchId?:string|null,audit?:(targets:BatchTake[]|null)=>AuditWrite[]):Promise<void>;updateTax(productId:string,rate:number|null,apparel:boolean,audit?:AuditWrite):Promise<void>;updateHsn(productId:string,hsn:string|null,audit?:AuditWrite):Promise<void>}
 export class CatalogService {
- constructor(private storage:CatalogStorage){}
- listProducts(){return this.storage.listProducts()}
+ constructor(private storage:CatalogStorage,private shops?:Pick<ShopStorage,'load'>){}
+ async listProducts(){const products=await this.storage.listProducts();return this.shops?withJewelleryPrices(products,await this.shops.load()):products;}
  listCategories(){return this.storage.listCategories()}
  async listSuppliers(){return (await this.storage.listSuppliers?.()??[]).filter(supplier=>supplier.active)}
  listMovements(){return this.storage.listMovements()}
