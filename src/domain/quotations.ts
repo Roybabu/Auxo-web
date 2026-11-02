@@ -40,6 +40,7 @@ export function isQuotationExpired(quote: Pick<QuotationRecord, 'validUntil'>, t
 /** Refresh saved product details from the current catalogue while preserving the quoted quantity and discounts. */
 export function repriceQuotationCart(cart: QuotationCart, products: Product[]) {
   const lines = cart.lines.map(line => {
+    if(line.customItem)return {...line};
     const product = products.find(candidate => candidate.id === line.productId);
     const variant = product?.variants.find(candidate => candidate.id === line.variantId);
     if (!product || !variant) return { ...line, availableStock: 0, unavailable: true };

@@ -14,10 +14,11 @@ import type {ShopCategory} from './categories';
 import type {PortableProductPhoto,StoredProductPhoto} from './productPhotos';
 import {isValidGstin} from './gstin';
 import type { QuotationRecord } from './quotations';
+import type {DatabaseKeyWrap} from './databaseEncryption';
 
 export type BusinessSnapshot={shop:ShopIdentity|null;products:Product[];movements:StockMovement[];invoices:InvoiceRecord[];quotations:QuotationRecord[];customers:BillingCustomer[];customerLedger:CustomerLedgerEntry[];accounts:StoredAccount[];heldBills:HeldBill[];suppliers:Supplier[];purchaseOrders:PurchaseOrder[];purchaseReceipts:PurchaseReceipt[];dayClosings:DayClosing[];loyaltyRules:LoyaltyRules;loyaltyLedger:LoyaltyEntry[];stockBatches:StockBatch[];auditLog:AuditRecord[];stockCounts:StockCountRecord[];categories:ShopCategory[];productPhotos:StoredProductPhoto[]};
 export type PortableSnapshot=Omit<BusinessSnapshot,'productPhotos'>&{productPhotos:PortableProductPhoto[]};
-export type PortableBackup={app:'auxo-web-genesis';format:1;createdAt:number;databaseVersion:17;data:PortableSnapshot};
+export type PortableBackup={app:'auxo-web-genesis';format:1;createdAt:number;databaseVersion:17;databaseKeyWrap?:DatabaseKeyWrap;data:PortableSnapshot};
 export type BackupSummary={createdAt:number;storeName:string;products:number;invoices:number;customers:number;employees:number};
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const id=(value:unknown)=>typeof value==='string'&&value.length>0&&value.length<=200;

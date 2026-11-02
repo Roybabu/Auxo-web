@@ -27,12 +27,12 @@ it('encrypts a complete local snapshot, previews it, and restores it atomically'
   await db.save({storeName:'Changed shop',address:'Second road'});
   await expect(backups.restore({...prepared,backup:{...prepared.backup,data:{...prepared.backup.data,products:[{id:'broken'} as never]}}})).rejects.toThrow(/product/);
   expect((await db.load())?.storeName).toBe('Changed shop');
-  await backups.restore(prepared);expect(auth.getSnapshot()).toBeNull();expect((await db.load())?.storeName).toBe('Original shop');expect((await db.listProducts())[0]).toMatchObject({description:'Ceramic mug',dietType:'VEG',variants:[{netQuantity:{amountMilli:200000,unit:'GRAM'}}]});
+  await backups.restore(prepared);expect(auth.getSnapshot()).toBeNull();await auth.signIn('owner','RiverStoneSecret91');expect((await db.load())?.storeName).toBe('Original shop');expect((await db.listProducts())[0]).toMatchObject({description:'Ceramic mug',dietType:'VEG',variants:[{netQuantity:{amountMilli:200000,unit:'GRAM'}}]});
   expect((await db.listProducts()).find(item=>item.id==='volume-backup')).toMatchObject({stockUnit:'MILLILITRE',variants:[{stock:1250,lowStockThreshold:500,reorderQuantity:2000}]});
   expect((await db.listAccounts()).length).toBe(2);expect((await db.listProducts())[0]?.variants[0]?.stock).toBe(1);
   expect((await db.listInvoices()).length).toBe(1);expect((await db.listCustomers())[0]?.balancePaise).toBe('1000');expect((await db.listCustomerLedger(customer.id)).length).toBe(1);expect(await db.getLoyaltyPointsBalance(customer.id)).toBe(2);expect((await db.getLoyaltyRules()).enabled).toBe(true);
   expect((await db.listQuotations()).map(q=>[q.number,q.totalPaise,q.cart.customerId])).toEqual([[expect.stringMatching(/^QT\/\d{2}-\d{2}\/00001$/),'1000',customer.id]]);
-  await auth.signIn('owner','RiverStoneSecret91');expect(auth.getSnapshot()?.role).toBe('SUPER_ADMIN');
+  expect(auth.getSnapshot()?.role).toBe('SUPER_ADMIN');
   await db.close();
 });
 
@@ -51,7 +51,7 @@ it('includes product and variant photo blobs in encrypted backup and restores th
   await db.saveProductPhoto('photo-product',productPhoto);await db.saveProductPhoto('photo-colour',colourPhoto);
   const now=Date.now(),product:Product={id:'photo-product-row',name:'Shirt',category:'GARMENT',photoId:'photo-product',brand:null,gstRateBasisPoints:500,apparelGst:false,stockUnit:'UNIT',tracksStock:true,createdAt:now,updatedAt:now,variants:[{id:'photo-variant',size:'M',colour:'Blue',photoId:'photo-colour',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'1',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:1,lowStockThreshold:0}]};
   await db.saveProduct(product,[]);const exported=await backups.export('long backup phrase 91'),prepared=await backups.inspect(exported,'long backup phrase 91');expect(prepared.backup.data.productPhotos).toHaveLength(2);
-  await db.saveProductPhoto('unreferenced',new Blob([new Uint8Array([8])],{type:'image/jpeg'}));await backups.restore(prepared);
+  await db.saveProductPhoto('unreferenced',new Blob([new Uint8Array([8])],{type:'image/jpeg'}));await backups.restore(prepared);await auth.signIn('owner','RiverStoneSecret91');
   expect(new Uint8Array(await (await db.getProductPhoto('photo-product'))!.arrayBuffer())).toEqual(new Uint8Array([1,2,3,4]));expect(new Uint8Array(await (await db.getProductPhoto('photo-colour'))!.arrayBuffer())).toEqual(new Uint8Array([5,6,7]));expect(await db.getProductPhoto('unreferenced')).toBeNull();
   await db.close();
 });
