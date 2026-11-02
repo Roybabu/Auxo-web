@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { ShopService } from '../application/shopService';
 import { InputField } from './primitives';
 import { GST_STATE_CODES } from '../domain/shop';
+import type { ShopIdentity } from '../domain/shop';
 export function ShopPage({ service }: {service: ShopService}) {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -9,20 +10,22 @@ export function ShopPage({ service }: {service: ShopService}) {
   const [employeeDiscountLimitBp,setEmployeeDiscountLimitBp]=useState(0);
   const [tableCount,setTableCount]=useState(10);
   const [onTimeBonusPoints,setOnTimeBonusPoints]=useState(0);
+  const [extra,setExtra]=useState<Partial<ShopIdentity>>({});
+  const updateExtra=(value:Partial<ShopIdentity>)=>setExtra(current=>({...current,...value}));
   const [state, setState] = useState<'loading'|'ready'|'saving'|'failed'>('loading');
   const [message, setMessage] = useState('');
   useEffect(() => {
     let live = true;
     service.load().then(shop => {
       if (!live) return;
-      setName(shop?.storeName ?? ''); setAddress(shop?.address ?? '');setGstin(shop?.gstin??'');setStateCode(shop?.stateCode??'');setGstRegistered(shop?.gstRegistered??true);setPricesIncludeTax(shop?.pricesIncludeTax??true);setRoundOff(shop?.roundOff??true);setInvoicePrefix(shop?.invoicePrefix??'INV');setEmployeeDiscountLimitBp(shop?.employeeDiscountLimitBp??0);setTableCount(shop?.tableCount??10);setOnTimeBonusPoints(shop?.onTimeBonusPoints??0); setState('ready');
+      setName(shop?.storeName ?? ''); setAddress(shop?.address ?? '');setGstin(shop?.gstin??'');setStateCode(shop?.stateCode??'');setGstRegistered(shop?.gstRegistered??true);setPricesIncludeTax(shop?.pricesIncludeTax??true);setRoundOff(shop?.roundOff??true);setInvoicePrefix(shop?.invoicePrefix??'INV');setEmployeeDiscountLimitBp(shop?.employeeDiscountLimitBp??0);setTableCount(shop?.tableCount??10);setOnTimeBonusPoints(shop?.onTimeBonusPoints??0);setExtra({phone:shop?.phone??'',fssai:shop?.fssai??'',upiId:shop?.upiId??'',upiPayeeName:shop?.upiPayeeName??'',creditNotePrefix:shop?.creditNotePrefix??'CN',expiryWarningDays:shop?.expiryWarningDays??30,receiptPaper:shop?.receiptPaper??'THERMAL_80',receiptFooter:shop?.receiptFooter??'Thank you for shopping with us!',receiptShowHsn:shop?.receiptShowHsn??true,receiptShowTaxBreakup:shop?.receiptShowTaxBreakup??true,receiptShowCustomer:shop?.receiptShowCustomer??true,receiptShowSavings:shop?.receiptShowSavings??true,receiptShowBarcode:shop?.receiptShowBarcode??true,receiptShowUpiQr:shop?.receiptShowUpiQr??true,receiptLanguage:shop?.receiptLanguage??'en'}); setState('ready');
     }).catch(() => { if (live) {setState('failed'); setMessage('Local data could not be opened. Reload to retry.');} });
     return () => {live = false;};
   }, [service]);
   async function submit(event: FormEvent) {
     event.preventDefault(); setState('saving'); setMessage('');
     try {
-      const saved = await service.save({storeName: name, address,gstin,stateCode,gstRegistered,pricesIncludeTax,roundOff,invoicePrefix,employeeDiscountLimitBp,tableCount,onTimeBonusPoints});
+      const saved = await service.save({storeName: name, address,gstin,stateCode,gstRegistered,pricesIncludeTax,roundOff,invoicePrefix,employeeDiscountLimitBp,tableCount,onTimeBonusPoints,...extra});
       setName(saved.storeName); setAddress(saved.address);setGstin(saved.gstin??'');setStateCode(saved.stateCode??'');setInvoicePrefix(saved.invoicePrefix??'INV'); setMessage('Business and billing settings saved on this device.');
     } catch (error) {setMessage(error instanceof Error ? error.message : 'Saving failed. Please retry.');}
     finally {setState('ready');}
@@ -36,6 +39,19 @@ export function ShopPage({ service }: {service: ShopService}) {
       <label className="check-label"><input type="checkbox" checked={pricesIncludeTax} onChange={e=>setPricesIncludeTax(e.target.checked)}/> Product prices include GST</label>
       <label className="check-label"><input type="checkbox" checked={roundOff} onChange={e=>setRoundOff(e.target.checked)}/> Round invoice total to nearest rupee</label>
       <InputField label="Invoice prefix" required minLength={1} maxLength={4} pattern="[A-Za-z0-9]{1,4}" value={invoicePrefix} onChange={e=>setInvoicePrefix(e.target.value.toUpperCase())}/>
+      <h2>Store details</h2>
+      <InputField label="Store phone number" maxLength={20} value={extra.phone??''} onChange={e=>updateExtra({phone:e.target.value})}/>
+      <InputField label="FSSAI licence / registration number (optional)" inputMode="numeric" maxLength={14} value={extra.fssai??''} onChange={e=>updateExtra({fssai:e.target.value.replace(/\D/g,'').slice(0,14)})}/>
+      <InputField label="UPI ID (optional)" maxLength={100} placeholder="shop@upi" value={extra.upiId??''} onChange={e=>updateExtra({upiId:e.target.value})}/>
+      <InputField label="UPI payee name" maxLength={80} value={extra.upiPayeeName??''} onChange={e=>updateExtra({upiPayeeName:e.target.value})}/>
+      <h2>Receipt settings</h2>
+      <label>Receipt paper<select value={extra.receiptPaper??'THERMAL_80'} onChange={e=>updateExtra({receiptPaper:e.target.value as ShopIdentity['receiptPaper']})}><option value="THERMAL_58">58 mm thermal</option><option value="THERMAL_76">76 mm thermal</option><option value="THERMAL_80">80 mm thermal</option><option value="A5">A5</option><option value="A4">A4</option></select></label>
+      <label>Receipt language<select value={extra.receiptLanguage??'en'} onChange={e=>updateExtra({receiptLanguage:e.target.value as ShopIdentity['receiptLanguage']})}><option value="en">English</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="as">অসমীয়া</option></select></label>
+      <InputField label="Receipt footer" maxLength={140} value={extra.receiptFooter??''} onChange={e=>updateExtra({receiptFooter:e.target.value})}/>
+      {([['receiptShowHsn','Show HSN codes'],['receiptShowTaxBreakup','Show tax breakdown'],['receiptShowCustomer','Show customer details'],['receiptShowSavings','Show savings'],['receiptShowBarcode','Show invoice barcode'],['receiptShowUpiQr','Show UPI payment QR'] ] as const).map(([key,label])=><label className="check-label" key={key}><input type="checkbox" checked={extra[key]??true} onChange={e=>updateExtra({[key]:e.target.checked})}/>{label}</label>)}
+      <h2>Credit notes and expiry alerts</h2>
+      <InputField label="Credit note prefix" required minLength={1} maxLength={4} pattern="[A-Za-z0-9]{1,4}" value={extra.creditNotePrefix??'CN'} onChange={e=>updateExtra({creditNotePrefix:e.target.value.toUpperCase()})}/>
+      <label>Flag stock expiring within<select value={extra.expiryWarningDays??30} onChange={e=>updateExtra({expiryWarningDays:Number(e.target.value)})}>{[7,15,30,60,90].map(days=><option key={days} value={days}>{days} days</option>)}</select></label>
       <label>Employee discount limit<select value={employeeDiscountLimitBp} onChange={e=>setEmployeeDiscountLimitBp(Number(e.target.value))}>{[0,500,1000,1500,2000,2500,5000,10000].map(rate=><option key={rate} value={rate}>{rate/100}%</option>)}</select></label>
       <InputField label="On-time account payment bonus points (0–10,000; 0 disables)" type="number" min={0} max={10000} value={String(onTimeBonusPoints)} onChange={e=>setOnTimeBonusPoints(Number(e.target.value))}/>
       <InputField label="Restaurant table count (1–99)" type="number" inputMode="numeric" min={1} max={99} value={String(tableCount)} onChange={e=>setTableCount(Number(e.target.value))}/>
