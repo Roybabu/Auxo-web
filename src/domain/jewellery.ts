@@ -13,7 +13,7 @@ export function jewelleryPricePaise(product:Product,variant:ProductVariant,shop:
   const metal=halfUp(BigInt(weight)*BigInt(rate),1000n);
   const making=halfUp(metal*BigInt(product.makingChargeBasisPoints??0),10_000n);
   let total=metal+making;
-  if(shop.pricesIncludeTax??true){const tax=halfUp(total*BigInt(product.gstRateBasisPoints??300),10_000n);total+=tax;}
+  if((shop.gstRegistered??true)&&(shop.pricesIncludeTax??true)){const tax=halfUp(total*BigInt(product.gstRateBasisPoints??300),10_000n);total+=tax;}
   return roundRupee(total).toString();
 }
 
