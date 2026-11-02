@@ -2,7 +2,7 @@ import type { AuthService } from './authService';
 import { summarizeBackup, validateBackup, type BusinessSnapshot, type PortableBackup, type PortableSnapshot } from '../domain/backup';
 import {PRODUCT_PHOTO_MIME} from '../domain/productPhotos';
 
-export interface BackupStorage {snapshot():Promise<BusinessSnapshot>;replaceSnapshot(data:BusinessSnapshot):Promise<void>;recordAudit?(actor:{id:string;name:string;role:'SUPER_ADMIN'|'EMPLOYEE'}|null,action:'BACKUP_CREATED',entityType:'backup',entityId:string|null,summary:string):Promise<void>}
+export interface BackupStorage {snapshot():Promise<BusinessSnapshot>;replaceSnapshot(data:BusinessSnapshot):Promise<void>;recordAudit(actor:{id:string;name:string;role:'SUPER_ADMIN'|'EMPLOYEE'}|null,action:'BACKUP_CREATED',entityType:'backup',entityId:string|null,summary:string):Promise<void>}
 const magic=new TextEncoder().encode('AUXOWEB1');
 const headerSize=41,iterations=600_000,maxBytes=100*1024*1024;
 async function encodePhoto(blob:Blob){const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(binary);}
@@ -20,7 +20,7 @@ export class BackupService {
     const plaintext=new TextEncoder().encode(JSON.stringify(backup));if(plaintext.byteLength>maxBytes)throw new Error('Backup exceeds the current 100 MB web limit.');
     const header=new Uint8Array(headerSize);header.set(magic);header[8]=1;new DataView(header.buffer).setUint32(9,iterations,false);crypto.getRandomValues(header.subarray(13,29));crypto.getRandomValues(header.subarray(29,41));
     const secret=await key(passphrase,header.subarray(13,29),iterations);const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv:header.subarray(29,41) as BufferSource,additionalData:header as BufferSource},secret,plaintext as BufferSource);
-    const actor=this.auth.getSnapshot();await this.storage.recordAudit?.(actor?{id:actor.id,name:actor.name,role:actor.role}:null,'BACKUP_CREATED','backup',null,'Created an encrypted business backup');return new Blob([header.buffer,ciphertext],{type:'application/octet-stream'});
+    const actor=this.auth.getSnapshot();await this.storage.recordAudit(actor?{id:actor.id,name:actor.name,role:actor.role}:null,'BACKUP_CREATED','backup',null,'Created an encrypted business backup');return new Blob([header.buffer,ciphertext],{type:'application/octet-stream'});
   }
   async inspect(file:Blob,passphrase:string):Promise<PreparedBackup>{
     await this.auth.require('BACKUP_AND_RESTORE');if(!passphrase)throw new Error('Enter the backup passphrase.');
