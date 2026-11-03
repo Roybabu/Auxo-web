@@ -43,7 +43,7 @@ export function ScheduledBackupSection({scheduled}:{scheduled:ScheduledBackupSer
     <p>AUXO writes an encrypted file to the folder you choose at the interval you set, while AUXO is open in this browser. Old files beyond the number you keep are removed from that folder only.</p>
     {error&&<p role="alert" className="error">{error}</p>}{message&&<p role="status">{message}</p>}
     {status&&<div className="backup-status"><p>Folder: <strong>{status.folderName ?? 'none chosen'}</strong></p>
-      {status.folderName&&status.permission!=='granted'&&<p>Folder access is not allowed right now. Allow it to continue scheduled backups.</p>}
+      {status.folderName&&status.permission!=='granted'&&<p><strong>Your browser needs you to allow access to this folder again</strong> (it does this after a restart). Click Allow folder access below, then scheduled backups continue.</p>}
       <p>Passphrase: {status.hasPassphrase?'saved':'not saved'}</p>
       {status.settings.lastSuccessAt&&<p>Last file written: {new Date(status.settings.lastSuccessAt).toLocaleString()}</p>}
       {status.nextDueAt&&<p>Next file due: {new Date(status.nextDueAt).toLocaleString()}</p>}
