@@ -191,6 +191,8 @@ export async function toSharedPayload(input: {
     const { lines, payments, customer, ...row } = invoice as InvoiceRecord & { customer?: { id: string } | null };
     emit(t, 'invoices', {
       ...row,
+      // The format requires the seller's phone; older invoices were saved without one.
+      seller: { ...invoice.seller, phone: invoice.seller.phone ?? '' },
       customerId: customer?.id ?? null,
       customer: customer ?? null,
       placeOfSupply: invoice.placeOfSupply ?? placeOfSupplyFor(invoice),

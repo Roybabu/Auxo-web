@@ -95,6 +95,11 @@ export function validateSharedPayload(payload: unknown): ValidationResult {
         const reason = checkValue(kind, row[field]);
         if (reason) add(name, index, field, reason);
       }
+      if (name === 'invoices' && typeof row.seller === 'object' && row.seller !== null) {
+        for (const field of ['storeName', 'address', 'gstin', 'stateCode', 'phone']) {
+          if (typeof (row.seller as Record<string, unknown>)[field] !== 'string') add(name, index, `seller.${field}`, 'required field is missing');
+        }
+      }
       if ('id' in required && typeof row.id === 'string') {
         if (seen.has(row.id)) add(name, index, 'id', 'duplicate ID');
         seen.add(row.id);

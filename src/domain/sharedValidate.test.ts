@@ -26,7 +26,7 @@ function validPayload(): SharedPayload {
   tables.products = [{ id: PRODUCT_ID, name: 'Mug', category: 'PACKAGED_FOOD', brand: null, createdAt: 1, updatedAt: 1, stockUnit: 'UNIT', gstRateBasisPoints: 0, apparelGst: false, available: true, tracksStock: true }];
   tables.variants = [{ id: VARIANT_ID, productId: PRODUCT_ID, sku: 'M1', barcode: '890', size: '', colour: '', pricePaise: '1000', mrpPaise: null, costPaise: null, stockQuantity: 3, lowStockThreshold: 0, reorderQuantity: 0 }];
   tables.customers = [{ id: CUSTOMER_ID, name: 'Asha', balancePaise: '0', createdAt: 1, updatedAt: 1 }];
-  tables.invoices = [{ id: INVOICE_ID, number: 'INV/26-27/00001', type: 'SALE', createdAt: 2, seller: { storeName: 'Sample' }, buyer: null, customerId: null, originalInvoiceId: null, originalInvoiceNumber: null, note: null, returnReason: null, placeOfSupply: '19', gstRegistered: false, pricesIncludeTax: true, interState: false, subtotalPaise: '1000', lineDiscountPaise: '0', billDiscountPaise: '0', discountPaise: '0', billDiscountReason: null, loyaltyPointsRedeemed: 0, loyaltyDiscountPaise: '0', taxablePaise: '1000', cgstPaise: '0', sgstPaise: '0', igstPaise: '0', roundOffPaise: '0', roundedToRupee: false, grandTotalPaise: '1000', savingsPaise: '0' }];
+  tables.invoices = [{ id: INVOICE_ID, number: 'INV/26-27/00001', type: 'SALE', createdAt: 2, seller: { storeName: 'Sample', address: '', gstin: '', stateCode: '27', phone: '' }, buyer: null, customerId: null, originalInvoiceId: null, originalInvoiceNumber: null, note: null, returnReason: null, placeOfSupply: '19', gstRegistered: false, pricesIncludeTax: true, interState: false, subtotalPaise: '1000', lineDiscountPaise: '0', billDiscountPaise: '0', discountPaise: '0', billDiscountReason: null, loyaltyPointsRedeemed: 0, loyaltyDiscountPaise: '0', taxablePaise: '1000', cgstPaise: '0', sgstPaise: '0', igstPaise: '0', roundOffPaise: '0', roundedToRupee: false, grandTotalPaise: '1000', savingsPaise: '0' }];
   tables.invoiceLines = [{ id: '66666666-6666-4666-8666-666666666666', invoiceId: INVOICE_ID, productId: PRODUCT_ID, variantId: VARIANT_ID, originalLineId: null, name: 'Mug', variantLabel: '', barcode: '890', hsnCode: null, customItem: false, quantity: 1, stockUnit: 'UNIT', unitPricePaise: '1000', mrpPaise: null, lineDiscountPaise: '0', billDiscountSharePaise: '0', discountPaise: '0', discountReason: null, taxablePaise: '1000', gstRateBasisPoints: 0, cgstPaise: '0', sgstPaise: '0', igstPaise: '0', totalPaise: '1000', returnedQuantity: 0 }];
   tables.payments = [{ id: '77777777-7777-4777-8777-777777777777', invoiceId: INVOICE_ID, method: 'CASH', kind: 'PAYMENT', amountPaise: '1000', reference: null, tenderedPaise: '1000', changePaise: '0', createdAt: 2 }];
   return { format: 'auxo-backup', version: 1, sharedModelVersion: 1, createdAt: 3, source: { platform: 'web', appVersion: 'test' }, shopName: 'Sample', tables: tables as unknown as SharedPayload['tables'], photos: [] };
@@ -104,5 +104,13 @@ describe('a realistic export', () => {
     const result = validateSharedPayload(JSON.parse(JSON.stringify(payload)));
     expect(result.problems).toEqual([]);
     expect(result.valid).toBe(true);
+  });
+
+  it('requires the seller phone on every invoice', () => {
+    const payload = validPayload() as { tables: { invoices: Array<{ seller: Record<string, unknown> }> } };
+    delete payload.tables.invoices[0].seller.phone;
+    const result = validateSharedPayload(payload);
+    expect(result.valid).toBe(false);
+    expect(result.problems.some(x => x.field === 'seller.phone')).toBe(true);
   });
 });
