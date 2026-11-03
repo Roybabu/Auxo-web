@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ScheduledBackupService, scheduledFileName, type BackupFolder, type FolderPermission, type ScheduleStore } from './scheduledBackupService';
+import { ScheduledBackupService, scheduledFileName, type BackupFolder, type FolderPermission, type PassphraseWrapper, type ScheduleStore } from './scheduledBackupService';
 
 class MemoryStore implements ScheduleStore {
   private readonly values = new Map<string, unknown>();
@@ -18,8 +18,12 @@ class MemoryFolder implements BackupFolder {
   async removeFile(name: string) { this.files.delete(name); }
 }
 
+const plainWrapper: PassphraseWrapper = {
+  async wrap(passphrase) { return { iv: new Uint8Array([0]), data: new TextEncoder().encode(passphrase) }; },
+  async unwrap(sealed) { return new TextDecoder().decode(sealed.data); },
+};
+
 const MINUTE = 60_000;
-const PASS = 'long scheduled phrase';
 
 function setup(overrides: { requireAccess?: () => Promise<void> } = {}) {
   const store = new MemoryStore();
@@ -31,104 +35,92 @@ function setup(overrides: { requireAccess?: () => Promise<void> } = {}) {
     openFolder: handle => handle as BackupFolder,
     exportFile: async passphrase => { used.push(passphrase); return new Blob([`backup-${used.length}`]); },
     requireAccess: overrides.requireAccess ?? (async () => {}),
+    wrapper: plainWrapper,
     now: () => clock,
   });
   return { service, store, folder, used, advance: (ms: number) => { clock += ms; }, now: () => clock };
-}
-
-async function enabled(service: ScheduledBackupService, folder: BackupFolder, intervalMinutes = 60, keepCount = 5) {
-  await service.chooseFolder(folder);
-  await service.configure({ enabled: true, intervalMinutes: intervalMinutes as 60, keepCount });
 }
 
 describe('scheduled backups', () => {
   it('does nothing when switched off', async () => {
     const { service, folder } = setup();
     await service.chooseFolder(folder);
-    expect(await service.run({ passphrase: PASS })).toBe('not-due');
+    expect(await service.runIfDue()).toBe(false);
     expect(folder.files.size).toBe(0);
   });
 
-  it('needs only a folder to switch on, and never stores a passphrase', async () => {
-    const { service, folder, store } = setup();
+  it('will not switch on until a folder and a passphrase are set', async () => {
+    const { service, folder } = setup();
     await expect(service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 })).rejects.toThrow(/folder/);
-    await enabled(service, folder);
+    await service.chooseFolder(folder);
+    await expect(service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 })).rejects.toThrow(/passphrase/);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 });
     expect((await service.status()).settings.enabled).toBe(true);
-    const stored = JSON.stringify([...((store as unknown as { values: Map<string, unknown> }).values.entries())]);
-    expect(stored).not.toContain(PASS);
   });
 
-  it('asks for the passphrase when a backup is due, and writes nothing without it', async () => {
-    const { service, folder } = setup();
-    await enabled(service, folder);
-    expect(await service.run()).toBe('needs-passphrase');
-    expect(folder.files.size).toBe(0);
-    expect((await service.status()).passphraseNeeded).toBe(true);
+  it('refuses a short passphrase', async () => {
+    const { service } = setup();
+    await expect(service.setPassphrase('short')).rejects.toThrow(/at least 10/);
   });
 
-  it('writes an encrypted file when given the passphrase, then waits for the interval', async () => {
+  it('writes an encrypted file when due, and not again until the interval passes', async () => {
     const { service, folder, used, advance, now } = setup();
-    await enabled(service, folder);
-    expect(await service.run({ passphrase: PASS })).toBe('written');
-    expect(used).toEqual([PASS]);
+    await service.chooseFolder(folder);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 });
+    expect(await service.runIfDue()).toBe(true);
+    expect(used).toEqual(['long scheduled phrase']);
     expect([...folder.files.keys()]).toEqual([scheduledFileName(now())]);
-    expect((await service.status()).passphraseNeeded).toBe(false);
     advance(30 * MINUTE);
-    expect(await service.run({ passphrase: PASS })).toBe('not-due');
+    expect(await service.runIfDue()).toBe(false);
     advance(31 * MINUTE);
-    expect(await service.run({ passphrase: PASS })).toBe('written');
+    expect(await service.runIfDue()).toBe(true);
     expect(folder.files.size).toBe(2);
-  });
-
-  it('"back up now" writes even when not due', async () => {
-    const { service, folder, advance } = setup();
-    await enabled(service, folder);
-    expect(await service.run({ passphrase: PASS })).toBe('written');
-    advance(1000);
-    expect(await service.run({ passphrase: PASS, force: true })).toBe('written');
-    expect(folder.files.size).toBe(2);
-  });
-
-  it('refuses a short passphrase and records the problem', async () => {
-    const { service, folder } = setup();
-    await enabled(service, folder);
-    expect(await service.run({ passphrase: 'short' })).toBe('failed');
-    expect(folder.files.size).toBe(0);
-    expect((await service.status()).settings.lastError).toMatch(/at least 10/);
   });
 
   it('keeps only the newest files', async () => {
     const { service, folder, advance } = setup();
-    await enabled(service, folder, 15, 2);
+    await service.chooseFolder(folder);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 15, keepCount: 2 });
     for (let i = 0; i < 4; i++) {
-      expect(await service.run({ passphrase: PASS })).toBe('written');
+      expect(await service.runIfDue()).toBe(true);
       advance(16 * MINUTE);
     }
-    expect(folder.files.size).toBe(2);
+    const names = [...folder.files.keys()].sort();
+    expect(names).toHaveLength(2);
+    expect(names[1]! > names[0]!).toBe(true);
   });
 
   it('records a clear error and writes nothing when folder access is not allowed', async () => {
     const { service, folder } = setup();
-    await enabled(service, folder);
+    await service.chooseFolder(folder);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 });
     folder.permissionState = 'prompt';
-    expect(await service.run({ passphrase: PASS })).toBe('failed');
+    expect(await service.runIfDue()).toBe(false);
     expect(folder.files.size).toBe(0);
     expect((await service.status()).settings.lastError).toMatch(/Allow AUXO/);
   });
 
   it('does not write when nobody with backup permission is signed in', async () => {
     const { service, folder } = setup({ requireAccess: async () => { throw new Error('Sign in to continue.'); } });
-    await enabled(service, folder);
-    expect(await service.run({ passphrase: PASS })).toBe('failed');
+    await service.chooseFolder(folder);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 });
+    expect(await service.runIfDue()).toBe(false);
     expect(folder.files.size).toBe(0);
     expect((await service.status()).settings.lastError).toBe('Sign in to continue.');
   });
 
   it('clears the error after a successful backup', async () => {
     const { service, folder, store } = setup();
-    await enabled(service, folder);
-    await store.set('settings', { ...(await service.status()).settings, lastError: 'old problem' });
-    expect(await service.run({ passphrase: PASS })).toBe('written');
+    await service.chooseFolder(folder);
+    await service.setPassphrase('long scheduled phrase');
+    await service.configure({ enabled: true, intervalMinutes: 60, keepCount: 5 });
+    await store.set('settings', { ...(await store.get('settings')) as object, lastError: 'old problem' });
+    expect(await service.runIfDue()).toBe(true);
     expect((await service.status()).settings.lastError).toBeNull();
   });
 });

@@ -2,7 +2,11 @@
 // The folder is a FileSystemDirectoryHandle (Chrome and Edge on a computer). Other browsers are reported as unsupported.
 
 import { openDB, type IDBPDatabase } from 'idb';
-import type { BackupFolder, FolderPermission, ScheduleStore } from '../application/scheduledBackupService';
+import type { BackupFolder, FolderPermission, PassphraseWrapper, ScheduleStore } from '../application/scheduledBackupService';
+
+type Sealed = { iv: Uint8Array; data: Uint8Array };
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export function folderPickingSupported(): boolean {
   return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -32,6 +36,33 @@ export class IndexedDbScheduleStore implements ScheduleStore {
 
   async set(key: string, value: unknown): Promise<void> {
     await (await this.connect()).put('kv', value, key);
+  }
+}
+
+/**
+ * Wraps the backup passphrase with an AES key that the browser keeps but never exposes (non-extractable).
+ * The stored text cannot be read without that key, and the key cannot be copied out of the browser.
+ */
+export class NonExtractableKeyWrapper implements PassphraseWrapper {
+  constructor(private readonly store: ScheduleStore) {}
+
+  private async key(): Promise<CryptoKey> {
+    const existing = await this.store.get<CryptoKey>('wrapKey');
+    if (existing) return existing;
+    const created = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    await this.store.set('wrapKey', created);
+    return created;
+  }
+
+  async wrap(passphrase: string): Promise<Sealed> {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as BufferSource }, await this.key(), encoder.encode(passphrase)));
+    return { iv, data };
+  }
+
+  async unwrap(sealed: Sealed): Promise<string> {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: sealed.iv as BufferSource }, await this.key(), sealed.data as BufferSource);
+    return decoder.decode(plain);
   }
 }
 

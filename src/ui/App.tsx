@@ -15,7 +15,7 @@ import { CustomerAccountsPage } from './CustomerAccountsPage';
 import { AuthPage, EmployeesPage, RecoverySetupPage } from './AuthPages';
 import { SharedBackupService } from '../application/sharedBackupService';
 import { ScheduledBackupService } from '../application/scheduledBackupService';
-import { IndexedDbScheduleStore, openBrowserFolder } from '../infrastructure/scheduledBackupStore';
+import { IndexedDbScheduleStore, NonExtractableKeyWrapper, openBrowserFolder } from '../infrastructure/scheduledBackupStore';
 import { AutoBackupService } from '../application/autoBackupService';
 import { BackupPage } from './BackupPage';
 import { SuppliersPage, PurchasesPage } from './PurchasingPages';
@@ -43,7 +43,7 @@ import {StockAlertsPage} from './StockAlertsPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured,shops),sales=new SalesService(secured,secured);
-const sharedBackups=new SharedBackupService(database,auth);const scheduledBackups=new ScheduledBackupService({store:new IndexedDbScheduleStore(),openFolder:openBrowserFolder,exportFile:passphrase=>sharedBackups.export(passphrase),requireAccess:()=>auth.require('BACKUP_AND_RESTORE')});const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
+const sharedBackups=new SharedBackupService(database,auth);const scheduleStore=new IndexedDbScheduleStore();const scheduledBackups=new ScheduledBackupService({store:scheduleStore,wrapper:new NonExtractableKeyWrapper(scheduleStore),openFolder:openBrowserFolder,exportFile:passphrase=>sharedBackups.export(passphrase),requireAccess:()=>auth.require('BACKUP_AND_RESTORE')});const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
 const activityLog=new ActivityLogService(database,auth);
 const quotations=new QuotationService(database,auth);
 const productPhotos=new ProductPhotoService(database);
@@ -55,11 +55,10 @@ function Guard({permission,children}:{permission:Permission;children:ReactNode})
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
 export default function App(){
   const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[needsCategorySetup,setNeedsCategorySetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
-  const [backupDue,setBackupDue]=useState(false);
   useEffect(()=>{auth.needsSetup().then(setSetup).catch(e=>setBootError(e instanceof Error?e.message:'Local accounts could not be opened.'));},[]);
   useEffect(()=>{if(!user){setNeedsCategorySetup(false);return;}categories.needsSetup().then(setNeedsCategorySetup).catch(e=>setBootError(e instanceof Error?e.message:'Local categories could not be opened.'));},[user?.id]);
   useEffect(()=>{const onRestore=(event:StorageEvent)=>{if(event.key==='auxo-genesis-restored')void auth.signOut().catch(()=>{});};window.addEventListener('storage',onRestore);return()=>window.removeEventListener('storage',onRestore);},[]);
-  useEffect(()=>{if(!user||!auth.can('BACKUP_AND_RESTORE'))return;const check=()=>{void scheduledBackups.status().then(st=>setBackupDue(st.passphraseNeeded)).catch(()=>{});};check();const timer=window.setInterval(check,60_000);window.addEventListener('focus',check);return()=>{window.clearInterval(timer);window.removeEventListener('focus',check);};},[user?.id]);
+  useEffect(()=>{if(!user||!auth.can('BACKUP_AND_RESTORE'))return;const check=()=>{void scheduledBackups.runIfDue().catch(()=>{});};check();const timer=window.setInterval(check,60_000);window.addEventListener('focus',check);return()=>{window.clearInterval(timer);window.removeEventListener('focus',check);};},[user?.id]);
   useEffect(()=>{if(!user||!auth.can('BACKUP_AND_RESTORE'))return;const check=()=>{void autoBackups.runIfDue().catch(()=>{});};check();const timer=window.setInterval(check,60_000);window.addEventListener('focus',check);return()=>{window.clearInterval(timer);window.removeEventListener('focus',check);};},[user?.id]);
   useEffect(()=>{if(user)setSetup(false);},[user]);
   if(bootError)return <main className="auth-screen"><section><h1>Local data unavailable</h1><p role="alert">{bootError}</p></section></main>;
@@ -71,7 +70,7 @@ export default function App(){
   return <HashRouter><div className="workspace"><aside><strong>AUXO</strong><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button><nav aria-label="Main navigation">
     <NavLink to="/" end>Overview</NavLink>{modules.filter(([, ,permission])=>auth.can(permission)).map(([path,label])=><NavLink key={path} to={`/${path}`}>{label}</NavLink>)}
     {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/categories">Product categories</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
-  </nav></aside><main>{backupDue&&<p role="status" className="backup-due-banner"><strong>A scheduled backup is due.</strong> <a href="#/backups">Open Backups</a> to enter the passphrase and write it.</p>}<Routes>
+  </nav></aside><main><Routes>
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard} autoBackups={autoBackups} canBackup={auth.can('BACKUP_AND_RESTORE')}/>:<EmployeeOverview name={user.name}/>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count','stock-alerts'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
