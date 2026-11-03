@@ -59,3 +59,11 @@ export function placeOfSupplyFor(invoice:{interState:boolean;buyer?:{stateCode?:
   const buyerState=invoice.buyer?.stateCode??'';
   return invoice.interState&&buyerState?buyerState:invoice.seller.stateCode;
 }
+
+/** Account wording as in Android: "Owes ₹500.00", "Advance ₹200.00" or "Settled". Positive balance means the customer owes. */
+export function accountBalanceLabel(balancePaise:string):{state:'OWES'|'ADVANCE'|'SETTLED';text:string}{
+  const balance=BigInt(balancePaise);
+  if(balance>0n)return {state:'OWES',text:`Owes ${formatMoney(balance)}`};
+  if(balance<0n)return {state:'ADVANCE',text:`Advance ${formatMoney(-balance)}`};
+  return {state:'SETTLED',text:'Settled'};
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateBill, cartLineFromProduct, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
+import { accountBalanceLabel, calculateBill, cartLineFromProduct, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
 import type {Product,ProductVariant} from './catalog';
 
 const settings:TaxSettings={gstRegistered:true,pricesIncludeTax:true,roundOff:true,stateCode:'19',invoicePrefix:'INV',storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5'};
@@ -48,3 +48,11 @@ describe('Android POS tax and discount calculations',()=>{
 });
 
 it('restaurant availability and no-stock tracking are reflected in billing lines',()=>{const p:Product={id:'dish',name:'Noodles',category:'RESTAURANT',brand:null,gstRateBasisPoints:500,apparelGst:false,available:true,tracksStock:false,stockUnit:'UNIT',createdAt:1,updatedAt:1,variants:[]};const v:ProductVariant={id:'dish-v',size:'',colour:'',sku:'',barcode:'',price:'10.00',mrp:'',cost:'',opening:'0',lowStock:'0',pricePaise:'1000',mrpPaise:null,costPaise:null,stock:0,lowStockThreshold:0};const line=cartLineFromProduct(p,v);expect(line.availableStock).toBe(Number.MAX_SAFE_INTEGER);expect(()=>calculateBill([line],settings,{kind:'AMOUNT',value:'',reason:''},false)).not.toThrow();const unavailable=cartLineFromProduct({...p,available:false},v);expect(unavailable.unavailable).toBe(true);expect(()=>calculateBill([unavailable],settings,{kind:'AMOUNT',value:'',reason:''},false)).toThrow(/currently unavailable/);});
+
+describe('account balance wording', () => {
+  it('says owes, advance or settled with the amount, as Android does', () => {
+    expect(accountBalanceLabel('50000')).toEqual({ state: 'OWES', text: expect.stringContaining('500') });
+    expect(accountBalanceLabel('-20000')).toEqual({ state: 'ADVANCE', text: expect.stringContaining('200') });
+    expect(accountBalanceLabel('0')).toEqual({ state: 'SETTLED', text: 'Settled' });
+  });
+});
