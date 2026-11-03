@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountBalanceLabel, calculateBill, cartLineFromProduct, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
+import { accountBalanceLabel, firstSaleAt, calculateBill, cartLineFromProduct, validateAccountPayment, validatePayments, type CartLine, type TaxSettings } from './billing';
 import type {Product,ProductVariant} from './catalog';
 
 const settings:TaxSettings={gstRegistered:true,pricesIncludeTax:true,roundOff:true,stateCode:'19',invoicePrefix:'INV',storeName:'Shop',address:'',gstin:'19ABCDE1234F1Z5'};
@@ -54,5 +54,12 @@ describe('account balance wording', () => {
     expect(accountBalanceLabel('50000')).toEqual({ state: 'OWES', text: expect.stringContaining('500') });
     expect(accountBalanceLabel('-20000')).toEqual({ state: 'ADVANCE', text: expect.stringContaining('200') });
     expect(accountBalanceLabel('0')).toEqual({ state: 'SETTLED', text: 'Settled' });
+  });
+});
+
+describe('first sale date', () => {
+  it('returns the earliest sale time, or undefined when there are none', () => {
+    expect(firstSaleAt([{ createdAt: 300 }, { createdAt: 100 }, { createdAt: 200 }])).toBe(100);
+    expect(firstSaleAt([])).toBeUndefined();
   });
 });
