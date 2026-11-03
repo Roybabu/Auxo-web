@@ -56,3 +56,23 @@ describe('shared backup service', () => {
     await owner.db.close();
   });
 });
+
+describe('first run on a new browser', () => {
+  it('restores the shop inside setup, so the shop name and category setup survive', async () => {
+    const source = await ownerDatabase('Origin');
+    await source.db.replaceBusinessData((await realisticSample()) as unknown as BusinessSnapshot);
+    const file = await source.service.export(PASS);
+
+    const fresh = new LocalDatabase('test-shared-fresh-' + crypto.randomUUID());
+    const freshAuth = new AuthService(fresh);
+    const freshService = new SharedBackupService(fresh, freshAuth);
+    const prepared = await freshService.inspect(file, PASS);
+    await freshAuth.setup('Restored', 'restored', 'RiverStoneSecret91', 'RiverStoneSecret91', () => freshService.restore(prepared));
+
+    expect((await fresh.load())?.storeName).toBe('Sample Shop');
+    expect(await fresh.needsCategorySetup()).toBe(false);
+    expect((await fresh.snapshot()).accounts.map(a => a.identifier)).toEqual(['restored']);
+    await source.db.close();
+    await fresh.close();
+  });
+});

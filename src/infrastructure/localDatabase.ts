@@ -192,6 +192,7 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
     await tx.done;
   }
 
+  async countAccounts(){return (await this.listAccounts()).length;}
   /** Replaces business data only. Local accounts, the app's own metadata and the database key are kept. */
   async replaceBusinessData(data:BusinessSnapshot){const names=['shop','products','movements','invoices','quotations','customers','customerLedger','heldBills','suppliers','purchaseOrders','purchaseReceipts','dayClosings','loyaltySettings','loyaltyLedger','stockBatches','auditLog','stockCounts','categories','productPhotos'] as const;const db=await this.connect();const tx=db.transaction([...names,'appMeta' as const],'readwrite');
     for(const name of names)await tx.objectStore(name).clear();

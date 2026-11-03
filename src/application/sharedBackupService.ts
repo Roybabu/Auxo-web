@@ -7,6 +7,7 @@ import { validateSharedPayload } from '../domain/sharedValidate';
 
 /** What the shared backup needs from storage. Accounts are never read into or written from a backup. */
 export interface SharedBackupStorage {
+  countAccounts(): Promise<number>;
   snapshot(): Promise<BusinessSnapshot>;
   replaceBusinessData(data: BusinessSnapshot): Promise<void>;
   recordAudit(actor: { id: string; name: string; role: 'SUPER_ADMIN' | 'EMPLOYEE' } | null, action: 'BACKUP_CREATED' | 'BACKUP_RESTORED', entityType: 'backup', entityId: string | null, summary: string): Promise<void>;
@@ -66,8 +67,9 @@ export class SharedBackupService {
     return new Blob([file as BlobPart], { type: 'application/octet-stream' });
   }
 
+  /** Opening a file is allowed before any login exists (a new browser), so the file can be checked before setup. */
   async inspect(file: Blob, passphrase: string): Promise<PreparedSharedBackup> {
-    await this.auth.require('BACKUP_AND_RESTORE');
+    if ((await this.storage.countAccounts()) > 0) await this.auth.require('BACKUP_AND_RESTORE');
     if (!passphrase) throw new Error('Enter the backup passphrase.');
     const json = await decryptSharedBackup(new Uint8Array(await file.arrayBuffer()), passphrase);
     let parsed: unknown;
@@ -101,7 +103,7 @@ export class SharedBackupService {
 
   /** Replaces business data. Logins, sessions and this device's database key are not changed. */
   async restore(prepared: PreparedSharedBackup): Promise<void> {
-    await this.auth.require('BACKUP_AND_RESTORE');
+    if ((await this.storage.countAccounts()) > 0) await this.auth.require('BACKUP_AND_RESTORE');
     await this.storage.replaceBusinessData(prepared.data);
     // Written after the data is in place, so the record of the restore is kept (the replacement clears the old log).
     const actor = this.auth.getSnapshot();

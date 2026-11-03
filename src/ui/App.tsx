@@ -60,7 +60,7 @@ export default function App(){
   useEffect(()=>{if(user)setSetup(false);},[user]);
   if(bootError)return <main className="auth-screen"><section><h1>Local data unavailable</h1><p role="alert">{bootError}</p></section></main>;
   if(setup===null)return <main className="auth-screen"><section>Opening local accounts…</section></main>;
-  if(!user)return <AuthPage auth={auth} setup={setup}/>;
+  if(!user)return <AuthPage auth={auth} setup={setup} shared={sharedBackups}/>;
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
   if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
   if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;

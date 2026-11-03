@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { placeOfSupplyFor } from './billing';
+import { BUILT_IN_CATEGORY_IDS } from './sharedSpec';
 import {
   SHARED_TABLE_NAMES,
   deriveSharedId,
@@ -143,5 +144,23 @@ describe('place of supply rule', () => {
     const { tables } = await toSharedPayload({ snapshot: sampleSnapshot(), photos: [], createdAt: 1, appVersion: 'test' });
     expect(tables.invoices[0]).toMatchObject({ customerId: 'c-1' });
     expect(tables.invoices[0]).not.toHaveProperty('customer');
+  });
+
+  it('maps built-in categories to fixed UUIDs and back, including product references', async () => {
+    const snapshot = sampleSnapshot();
+    snapshot.categories = [{ id: 'GARMENT', name: null, profile: 'GARMENT', enabled: true, sortOrder: 0, builtIn: true, subcategories: [] }] as never;
+    (snapshot.products[0] as unknown as { categoryId: string }).categoryId = 'GARMENT';
+    const payload = await toSharedPayload({ snapshot, photos: [], createdAt: 1, appVersion: 'test' });
+    expect(payload.tables.categories[0]).toMatchObject({ id: BUILT_IN_CATEGORY_IDS.GARMENT });
+    expect(payload.tables.products[0]).toMatchObject({ categoryId: BUILT_IN_CATEGORY_IDS.GARMENT });
+    const restored = fromSharedPayload(JSON.parse(JSON.stringify(payload)));
+    expect(restored.categories[0]).toMatchObject({ id: 'GARMENT' });
+    expect(restored.products[0]).toMatchObject({ categoryId: 'GARMENT' });
+  });
+
+  it('keeps the fixed built-in category UUIDs equal to their derived values', async () => {
+    for (const [profile, id] of Object.entries(BUILT_IN_CATEGORY_IDS)) {
+      expect(await deriveSharedId('builtin-category', profile)).toBe(id);
+    }
   });
 });

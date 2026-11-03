@@ -17,7 +17,7 @@
 import type { BusinessSnapshot } from './backup';
 import type { Product, ProductVariant } from './catalog';
 import { placeOfSupplyFor, type InvoiceRecord } from './billing';
-import { REQUIRED } from './sharedSpec';
+import { BUILT_IN_CATEGORY_FROM_ID, BUILT_IN_CATEGORY_IDS, REQUIRED } from './sharedSpec';
 import type { ShopCategory, ShopSubcategory } from './categories';
 import type { QuotationRecord } from './quotations';
 import type { StockCountRecord } from './stockCount';
@@ -161,13 +161,14 @@ export async function toSharedPayload(input: {
 
   for (const category of s.categories as ShopCategory[]) {
     const { subcategories = [], ...row } = category;
-    emit(t, 'categories', row);
-    for (const sub of subcategories as ShopSubcategory[]) emit(t, 'subcategories', { ...sub, categoryId: category.id });
+    emit(t, 'categories', { ...row, id: BUILT_IN_CATEGORY_IDS[row.id] ?? row.id });
+    for (const sub of subcategories as ShopSubcategory[]) emit(t, 'subcategories', { ...sub, categoryId: BUILT_IN_CATEGORY_IDS[category.id] ?? category.id });
   }
 
   for (const product of s.products as Product[]) {
     const { variants, ...row } = product;
-    emit(t, 'products', row);
+    const categoryId = row.categoryId !== undefined ? BUILT_IN_CATEGORY_IDS[row.categoryId] ?? row.categoryId : undefined;
+    emit(t, 'products', { ...row, categoryId });
     for (const variant of variants as ProductVariant[]) {
       const { stock, netQuantity, ...rest } = variant;
       emit(t, 'variants', {
@@ -339,7 +340,9 @@ export function fromSharedPayload(payload: SharedPayload): SharedSourceSnapshot 
       }
       return variant;
     });
-    return { ...restore('products', row), variants } as unknown as Product;
+    const product = restore('products', row);
+    if (typeof product.categoryId === 'string') product.categoryId = BUILT_IN_CATEGORY_FROM_ID[product.categoryId] ?? product.categoryId;
+    return { ...product, variants } as unknown as Product;
   });
 
   const invoices = t.invoices.map(row => {
@@ -356,6 +359,7 @@ export function fromSharedPayload(payload: SharedPayload): SharedSourceSnapshot 
     loyaltyRules,
     categories: t.categories.map(row => ({
       ...restore('categories', row),
+      id: BUILT_IN_CATEGORY_FROM_ID[String(row.id)] ?? row.id,
       subcategories: (subsByCategory.get(String(row.id)) ?? []).map(sub => restore('subcategories', sub, ['categoryId'])),
     })) as unknown as SharedSourceSnapshot['categories'],
     products: products as unknown as SharedSourceSnapshot['products'],

@@ -38,3 +38,28 @@ export const REQUIRED: Record<SharedTableName, Record<string, Kind>> = {
   extensions: { namespace: 'str', ownerType: 'str', ownerId: 'str', key: 'str', value: 'any' },
 };
 
+
+/**
+ * Fixed UUIDs for the built-in product categories. The web app uses the product type (e.g. "GARMENT") as their ID,
+ * and the spec needs UUIDs. Export maps each to its UUID; import maps it back. Values come from
+ * deriveSharedId('builtin-category', profile) and are checked by a test.
+ */
+export const BUILT_IN_CATEGORY_IDS: Readonly<Record<string, string>> = {
+  GARMENT: '21698313-7bd8-56ea-9c69-9ebe0fc84a82',
+  FOOTWEAR: '326c2ddf-a1a0-5d1e-91eb-ddb8cb003a87',
+  ACCESSORIES: '890d9f9a-c20c-5a59-aa2c-303f77300787',
+  PACKAGED_FOOD: '4fc4cfed-fae8-550c-a895-7f52e5e29c08',
+  BEVERAGE: '2a47ef63-65f0-54e1-8f27-934d8dc7a4a5',
+  GENERAL: '828e7b4d-9fac-5892-ad9d-726e22c55973',
+  ELECTRONICS: '12f7da24-108e-5afa-8d7d-016d30d75a3d',
+  PHARMACY: 'cb054182-c54d-53c8-940f-0dab4bb99460',
+  COSMETICS: '9a48869d-c8c3-5d01-99c7-0fb9ee73f78a',
+  LOOSE: 'fb0db978-456f-5fa1-b083-43b002189187',
+  JEWELLERY: 'd327dc5b-352a-57d1-846f-f62cc826463b',
+  RESTAURANT: '27533c16-dbd0-5a7f-b95a-cddc6e984278',
+};
+
+/** The reverse of BUILT_IN_CATEGORY_IDS: UUID back to the web app's product type. */
+export const BUILT_IN_CATEGORY_FROM_ID: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(BUILT_IN_CATEGORY_IDS).map(([profile, id]) => [id, profile]),
+);
