@@ -43,7 +43,7 @@ import {StockAlertsPage} from './StockAlertsPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured,shops),sales=new SalesService(secured,secured);
-const sharedBackups=new SharedBackupService(database,auth);const scheduleStore=new IndexedDbScheduleStore();const scheduledBackups=new ScheduledBackupService({store:scheduleStore,wrapper:new NonExtractableKeyWrapper(scheduleStore),openFolder:openBrowserFolder,exportFile:passphrase=>sharedBackups.export(passphrase),requireAccess:()=>auth.require('BACKUP_AND_RESTORE')});const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
+const sharedBackups=new SharedBackupService(database,auth);const scheduleStore=new IndexedDbScheduleStore();const scheduledBackups=new ScheduledBackupService({store:scheduleStore,wrapper:new NonExtractableKeyWrapper(scheduleStore),openFolder:openBrowserFolder,exportFile:passphrase=>sharedBackups.export(passphrase,{record:false}),requireAccess:()=>auth.require('BACKUP_AND_RESTORE')});const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
 const activityLog=new ActivityLogService(database,auth);
 const quotations=new QuotationService(database,auth);
 const productPhotos=new ProductPhotoService(database);

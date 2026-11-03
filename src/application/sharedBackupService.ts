@@ -46,7 +46,8 @@ function fromBase64(text: string): Uint8Array {
 export class SharedBackupService {
   constructor(private readonly storage: SharedBackupStorage, private readonly auth: AuthService) {}
 
-  async export(passphrase: string): Promise<Blob> {
+  /** [record] = false skips the activity log entry (used for scheduled files, to keep the log readable). */
+  async export(passphrase: string, options: { record?: boolean } = {}): Promise<Blob> {
     await this.auth.require('BACKUP_AND_RESTORE');
     if (passphrase.length < MIN_PASSPHRASE) throw new Error(`Backup passphrase must be at least ${MIN_PASSPHRASE} characters.`);
     const { accounts: _accounts, productPhotos, ...business } = await this.storage.snapshot();
@@ -63,7 +64,7 @@ export class SharedBackupService {
     }
     const file = await encryptSharedBackup(JSON.stringify(payload), passphrase);
     const actor = this.auth.getSnapshot();
-    await this.storage.recordAudit(actor ? { id: actor.id, name: actor.name, role: actor.role } : null, 'BACKUP_CREATED', 'backup', null, 'Created a shared encrypted business backup');
+    if (options.record !== false) await this.storage.recordAudit(actor ? { id: actor.id, name: actor.name, role: actor.role } : null, 'BACKUP_CREATED', 'backup', null, 'Created a shared encrypted business backup');
     return new Blob([file as BlobPart], { type: 'application/octet-stream' });
   }
 
