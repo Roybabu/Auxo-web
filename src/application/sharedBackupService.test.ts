@@ -44,6 +44,7 @@ describe('shared backup service', () => {
     expect(restored.customers.length).toBe(1);
     expect(restored.accounts.map(a => a.identifier)).toEqual(['target']);
     expect(target.auth.getSnapshot()?.name).toBe('Target');
+    expect((await target.db.listRecentAudit()).some(row => row.action === 'BACKUP_RESTORED')).toBe(true);
 
     await source.db.close();
     await target.db.close();

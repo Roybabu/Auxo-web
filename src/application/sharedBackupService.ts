@@ -9,7 +9,7 @@ import { validateSharedPayload } from '../domain/sharedValidate';
 export interface SharedBackupStorage {
   snapshot(): Promise<BusinessSnapshot>;
   replaceBusinessData(data: BusinessSnapshot): Promise<void>;
-  recordAudit(actor: { id: string; name: string; role: 'SUPER_ADMIN' | 'EMPLOYEE' } | null, action: 'BACKUP_CREATED', entityType: 'backup', entityId: string | null, summary: string): Promise<void>;
+  recordAudit(actor: { id: string; name: string; role: 'SUPER_ADMIN' | 'EMPLOYEE' } | null, action: 'BACKUP_CREATED' | 'BACKUP_RESTORED', entityType: 'backup', entityId: string | null, summary: string): Promise<void>;
 }
 
 export type SharedBackupSummary = {
@@ -103,5 +103,8 @@ export class SharedBackupService {
   async restore(prepared: PreparedSharedBackup): Promise<void> {
     await this.auth.require('BACKUP_AND_RESTORE');
     await this.storage.replaceBusinessData(prepared.data);
+    // Written after the data is in place, so the record of the restore is kept (the replacement clears the old log).
+    const actor = this.auth.getSnapshot();
+    await this.storage.recordAudit(actor ? { id: actor.id, name: actor.name, role: actor.role } : null, 'BACKUP_RESTORED', 'backup', null, `Restored a shared backup from ${prepared.summary.storeName}`);
   }
 }

@@ -1,9 +1,8 @@
 import {useEffect,useState,type FormEvent} from 'react';
-import {BackupService} from '../application/backupService';
 import {SharedBackupService,type PreparedSharedBackup} from '../application/sharedBackupService';
 import {AutoBackupService,type AutoBackupSchedule,type AutoBackupSettings,type AutoBackupStatus} from '../application/autoBackupService';
 
-export function BackupPage({shared,autoBackups}:{service:BackupService;shared:SharedBackupService;autoBackups:AutoBackupService}){
+export function BackupPage({shared,autoBackups}:{shared:SharedBackupService;autoBackups:AutoBackupService}){
   const [exportPass,setExportPass]=useState(''),[exportConfirm,setExportConfirm]=useState(''),[file,setFile]=useState<File|null>(null),[importPass,setImportPass]=useState(''),[prepared,setPrepared]=useState<PreparedSharedBackup|null>(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
   const [autoSettings,setAutoSettings]=useState<AutoBackupSettings|null>(null),[autoStatus,setAutoStatus]=useState<AutoBackupStatus|null>(null);
   async function refreshAuto(){const status=await autoBackups.status();setAutoStatus(status);setAutoSettings(status.settings);}
