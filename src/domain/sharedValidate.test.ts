@@ -95,34 +95,11 @@ describe('shared payload validator', () => {
 });
 
 import { toSharedPayload } from './sharedPayload';
-import { sampleSnapshot } from './sharedFixtures';
-import { deriveSharedId } from './sharedPayload';
-
-/** Replaces the sample's short test IDs with UUIDs, the same way the real app creates them. */
-async function withUuidIds<T>(value: T): Promise<T> {
-  const idKeys = new Set(['id', 'productId', 'variantId', 'customerId', 'invoiceId', 'originalInvoiceId', 'categoryId', 'orderId', 'orderLineId', 'supplierId', 'receiptId', 'heldBillId', 'quotationId', 'stockCountId', 'batchId', 'sourceInvoiceId', 'convertedInvoiceId', 'photoId', 'preferredSupplierId', 'stockCountId']);
-  const ids = new Map<string, string>();
-  const collect = (node: unknown) => {
-    if (Array.isArray(node)) node.forEach(collect);
-    else if (node && typeof node === 'object') for (const [k, v] of Object.entries(node)) {
-      if (idKeys.has(k) && typeof v === 'string' && v) ids.set(v, '');
-      collect(v);
-    }
-  };
-  collect(value);
-  for (const old of ids.keys()) ids.set(old, await deriveSharedId('sample', old));
-  const rewrite = (node: unknown): unknown => {
-    if (Array.isArray(node)) return node.map(rewrite);
-    if (typeof node === 'string') return ids.get(node) ?? node;
-    if (node && typeof node === 'object') return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, rewrite(v)]));
-    return node;
-  };
-  return rewrite(value) as T;
-}
+import { realisticSample } from './sharedFixtures';
 
 describe('a realistic export', () => {
   it('passes the checker with no problems once IDs are UUIDs', async () => {
-    const snapshot = await withUuidIds(sampleSnapshot());
+    const snapshot = await realisticSample();
     const payload = await toSharedPayload({ snapshot: snapshot as never, photos: [], createdAt: 1, appVersion: 'test' });
     const result = validateSharedPayload(JSON.parse(JSON.stringify(payload)));
     expect(result.problems).toEqual([]);

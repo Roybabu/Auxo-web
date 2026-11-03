@@ -1,6 +1,6 @@
 // Sample shop used by the shared backup tests. Test data only.
 
-import type { SharedSourceSnapshot } from './sharedPayload';
+import { deriveSharedId, type SharedSourceSnapshot } from './sharedPayload';
 
 // A small but complete sample shop: one of every record kind with nested children.
 export function sampleSnapshot(): SharedSourceSnapshot {
@@ -37,3 +37,29 @@ export function sampleSnapshot(): SharedSourceSnapshot {
   } as unknown as SharedSourceSnapshot;
 }
 
+/** Replaces the sample's short test IDs with UUIDs, the same way the real app creates them. */
+async function withUuidIds<T>(value: T): Promise<T> {
+  const idKeys = new Set(['id', 'productId', 'variantId', 'customerId', 'invoiceId', 'originalInvoiceId', 'categoryId', 'orderId', 'orderLineId', 'supplierId', 'receiptId', 'heldBillId', 'quotationId', 'stockCountId', 'batchId', 'sourceInvoiceId', 'convertedInvoiceId', 'photoId', 'preferredSupplierId', 'stockCountId']);
+  const ids = new Map<string, string>();
+  const collect = (node: unknown) => {
+    if (Array.isArray(node)) node.forEach(collect);
+    else if (node && typeof node === 'object') for (const [k, v] of Object.entries(node)) {
+      if (idKeys.has(k) && typeof v === 'string' && v) ids.set(v, '');
+      collect(v);
+    }
+  };
+  collect(value);
+  for (const old of ids.keys()) ids.set(old, await deriveSharedId('sample', old));
+  const rewrite = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(rewrite);
+    if (typeof node === 'string') return ids.get(node) ?? node;
+    if (node && typeof node === 'object') return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, rewrite(v)]));
+    return node;
+  };
+  return rewrite(value) as T;
+}
+
+/** The sample shop with UUID IDs, as the real app would create them. */
+export async function realisticSample(): Promise<SharedSourceSnapshot> {
+  return withUuidIds(sampleSnapshot());
+}
