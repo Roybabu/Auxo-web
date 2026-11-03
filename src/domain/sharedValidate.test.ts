@@ -107,8 +107,8 @@ describe('a realistic export', () => {
   });
 
   it('requires the seller phone on every invoice', () => {
-    const payload = validPayload() as { tables: { invoices: Array<{ seller: Record<string, unknown> }> } };
-    delete payload.tables.invoices[0].seller.phone;
+    const payload = validPayload() as unknown as { tables: { invoices: Array<{ seller: Record<string, unknown> }> } };
+    delete payload.tables.invoices[0]!.seller.phone;
     const result = validateSharedPayload(payload);
     expect(result.valid).toBe(false);
     expect(result.problems.some(x => x.field === 'seller.phone')).toBe(true);
