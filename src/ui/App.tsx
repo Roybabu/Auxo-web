@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { HashRouter, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
+import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ShopService } from '../application/shopService';
 import { CatalogService } from '../application/catalogService';
 import { SalesService } from '../application/salesService';
@@ -52,6 +52,25 @@ const stockCount=new StockCountService(database,auth);
 const categories=new CategoryService(database,auth);
 const dashboard=new DashboardService(database,auth);
 const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['stock-count','Stock count','ADJUST_STOCK'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
+type NavItem=[path:string,label:string,permission:Permission|null];
+const navGroups:{label:string;items:NavItem[]}[]=[
+  {label:'Home',items:[['/','Overview',null]]},
+  {label:'Billing',items:[['/pos','POS billing','SELL'],['/restaurant','Restaurant','SELL']]},
+  {label:'Stock',items:[['/products','Products','MANAGE_PRODUCTS'],['/inventory','Inventory','VIEW_STOCK_RECORDS'],['/stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['/stock-count','Stock count','ADJUST_STOCK'],['/categories','Product categories','MANAGE_SETTINGS']]},
+  {label:'People',items:[['/customers','Customers','MANAGE_CUSTOMERS'],['/suppliers','Suppliers','MANAGE_SUPPLIERS'],['/employees','Employees','MANAGE_USERS'],['/loyalty','Customer loyalty','MANAGE_LOYALTY']]},
+  {label:'Reports',items:[['/reports','Reports','VIEW_REPORTS'],['/gst','GST reports','GST_REPORT'],['/closing','Day-end closing','CLOSE_DAY'],['/activity','Activity log','VIEW_ACTIVITY_LOG']]},
+  {label:'More',items:[['/purchases','Purchases','MANAGE_PURCHASES'],['/backups','Backups','BACKUP_AND_RESTORE'],['/settings','Settings','MANAGE_SETTINGS'],['/recovery','Recovery code','MANAGE_USERS']]}
+];
+function TopBar({user}:{user:{name:string;role:string}}){
+  const {pathname}=useLocation();
+  const groups=navGroups.map(group=>({label:group.label,items:group.items.filter(([,,permission])=>permission===null||auth.can(permission))})).filter(group=>group.items.length>0);
+  const activeGroup=groups.find(group=>group.items.some(([path])=>path==='/'?pathname==='/':pathname===path||pathname.startsWith(path+'/')))??groups[0];
+  return <header className="topbar"><div className="topbar-row"><div className="brand"><svg width="42" height="42" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#167D55"/><path d="M20 31V19M20 19c0-5 3-8 8-8 0 5-3 8-8 8zM20 24c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg><strong>AUXO</strong></div>
+    <nav className="topnav" aria-label="Main navigation">{groups.map(group=><NavLink key={group.label} to={group.items[0]![0]} end={group.label==='Home'} className={group===activeGroup?'active':''}>{group.label}</NavLink>)}</nav>
+    <div className="topbar-user"><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
+    {activeGroup&&activeGroup.items.length>1&&<nav className="subnav" aria-label={`${activeGroup.label} pages`}>{activeGroup.items.map(([path,label])=><NavLink key={path} to={path}>{label}</NavLink>)}</nav>}
+  </header>;
+}
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
 export default function App(){
@@ -69,10 +88,7 @@ export default function App(){
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
   if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
   if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;
-  return <HashRouter><div className="workspace"><aside><div className="brand"><svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#167D55"/><path d="M20 31V19M20 19c0-5 3-8 8-8 0 5-3 8-8 8zM20 24c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg><strong>AUXO</strong></div><span className="edition">Genesis · functional skeleton</span><p>{user.name}<small className="muted">{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></p><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button><nav aria-label="Main navigation">
-    <NavLink to="/" end>Overview</NavLink>{modules.filter(([, ,permission])=>auth.can(permission)).map(([path,label])=><NavLink key={path} to={`/${path}`}>{label}</NavLink>)}
-    {auth.can('VIEW_REPORTS')&&<NavLink to="/reports">Reports</NavLink>}{auth.can('VIEW_ACTIVITY_LOG')&&<NavLink to="/activity">Activity log</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/categories">Product categories</NavLink>}{auth.can('MANAGE_SETTINGS')&&<NavLink to="/settings">Settings</NavLink>}{auth.can('MANAGE_USERS')&&<NavLink to="/recovery">Recovery code</NavLink>}
-  </nav></aside><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
+  return <HashRouter><div className="workspace"><TopBar user={user}/><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard}/>:<EmployeeOverview name={user.name}/>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count','stock-alerts'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
