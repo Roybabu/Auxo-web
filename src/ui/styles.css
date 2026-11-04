@@ -189,6 +189,68 @@ fieldset.tiles{border:0;padding:0;margin:0;display:grid;grid-template-columns:re
   .user-chip{display:none}
   .topbar{position:static}
 }
+/* ---- Billing screens (POS and Restaurant): cashier-terminal layout ---- */
+.pos-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);gap:20px;align-items:start}
+.pos-products{padding:22px!important}
+.pos-products>h2{margin:0 0 12px;font-size:22px}
+.pos-products>label{font-size:0;margin:0 0 12px}
+.pos-products>label input{font-size:18px;width:100%;max-width:none;padding:16px 20px;border-radius:999px;background:var(--bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%234A5B52' stroke-width='2.4' stroke-linecap='round'><circle cx='8.5' cy='8.5' r='6'/><path d='M13 13l5 5'/></svg>") no-repeat 18px center;padding-left:48px;border-color:transparent}
+.pos-products>label input::placeholder{color:var(--soft)}
+.pos-products>.secondary{margin-bottom:14px}
+.product-picker{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;max-height:calc(100vh - 300px);min-height:260px;padding:2px 4px 8px 2px}
+.menu-section{display:contents}
+.menu-section>h3{grid-column:1/-1;margin:10px 0 0;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+.product-choice{background:#fff;border:2px solid var(--line);border-radius:22px;padding:12px;gap:4px;box-shadow:0 4px 12px rgba(15,31,24,.05)}
+.product-choice strong{font-size:16px;line-height:1.2}
+.product-choice span{font-size:13px;color:var(--soft)}
+.product-choice .pc-price{font-size:19px;font-weight:900;color:var(--green-d)}
+.product-choice .pc-stock{font-size:12.5px}
+.product-choice span:last-child{align-self:start;margin-top:4px;padding:4px 12px;border-radius:999px;background:var(--mint);color:var(--green-d);font-weight:700;font-size:12px}
+.product-choice:disabled{opacity:.55}.product-choice:disabled span:last-child{background:#FFE3DC;color:#B42318}
+.product-choice .product-photo-thumb{height:92px;border-radius:14px;background:var(--bg)}
+
+.pos-checkout{position:sticky;top:156px;max-height:calc(100vh - 176px);overflow:auto;padding:0!important;display:flex;flex-direction:column;background:var(--card);border-radius:30px;box-shadow:0 18px 44px rgba(15,31,24,.12)}
+.pos-checkout>h2{margin:0;padding:20px 24px;font-size:22px;background:var(--ink);color:#fff;border-radius:30px 30px 0 0;position:sticky;top:0;z-index:2}
+.pos-checkout>*:not(h2){margin-left:22px;margin-right:22px}
+.pos-checkout>h3{margin-top:22px;margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft)}
+.cart-list{list-style:none;margin:14px 22px 0;padding:0;display:grid;gap:10px}
+.cart-line{background:var(--bg);border-radius:20px;padding:12px 14px}
+.cart-line-main{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
+.cart-line-name{display:grid;min-width:0}.cart-line-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cart-line-total{min-width:70px;text-align:right;font-size:16px}
+.quantity-control{background:#fff;border-radius:999px;padding:3px}
+.quantity-control button{width:30px;height:30px;padding:0;border-radius:50%;line-height:1;font-size:18px}
+.quantity-control span{min-width:22px;text-align:center;font-weight:800}
+.icon-button{width:30px;height:30px;padding:0;border-radius:50%;background:#fff;color:#B42318;font-size:18px;line-height:1}
+.icon-button:hover:not(:disabled){background:#FFE3DC;color:#B42318;box-shadow:none}
+.cart-empty{display:grid;gap:4px;text-align:center;padding:30px 12px;border:2px dashed var(--line);border-radius:20px;color:var(--soft)}
+.cart-empty strong{color:var(--ink);font-size:18px}
+details.line-discount,details.bill-extra{margin-top:8px}
+details summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--green-d);list-style:none;padding:4px 0}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'+';display:inline-block;width:20px;font-weight:900}
+details[open]>summary::before{content:'−'}
+.line-discount-fields{display:flex;gap:8px;flex-wrap:wrap;padding-top:6px}
+.line-discount-fields select,.line-discount-fields input{width:auto;flex:1 1 90px;margin:0;display:block;padding:8px 10px}
+details.bill-extra{background:var(--bg);border-radius:20px;padding:8px 16px}
+details.bill-extra[open]{padding-bottom:12px}
+details.bill-extra .bill-controls{margin-top:6px;flex-direction:column;gap:6px}
+details.bill-extra .bill-controls>div{grid-template-columns:1fr 1fr 1fr}
+details.bill-extra .customer-form{grid-template-columns:1fr;margin-top:6px}
+.totals{max-width:none;margin:16px 22px 0;padding:14px 18px;background:var(--bg);border-radius:22px}
+.totals>div{padding:5px 0;color:var(--soft)}.totals>div strong{color:var(--ink)}
+.totals .grand-total{border:0;margin:8px -18px -14px;padding:16px 18px!important;background:var(--ink);color:#fff;border-radius:0 0 22px 22px;font-size:22px;font-weight:800}
+.totals .grand-total strong,.totals .grand-total span{color:#fff}
+.customer-picker select{width:100%}
+.payment-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;background:var(--bg);border-radius:20px;padding:12px 14px;margin-bottom:10px;align-items:end}
+.payment-row label{margin:0;min-width:0}.payment-row input,.payment-row select{width:100%;max-width:none;min-width:0}.payment-row button{margin:0}
+.customer-picker{align-items:end}.customer-picker label{margin:0}.customer-picker button{margin:0}
+.pos-checkout>.button-row{margin:14px 22px 22px;display:grid;grid-template-columns:1fr;gap:10px}
+.pos-checkout .complete-sale{order:-1;font-size:20px;padding:20px;background:var(--green);box-shadow:0 14px 28px rgba(22,125,85,.3)}
+.pos-checkout .complete-sale:hover:not(:disabled){background:var(--green-d)}
+.pos-checkout .complete-sale:disabled{background:#B8C7BD;box-shadow:none}
+@media(max-width:1100px){.pos-layout{grid-template-columns:1fr}.pos-checkout{position:static;max-height:none}.product-picker{max-height:420px}}
+
 }
 
 @media print{.workspace>header{display:none!important}}
