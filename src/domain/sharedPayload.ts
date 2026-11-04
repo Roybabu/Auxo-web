@@ -70,7 +70,7 @@ const SPEC_COLUMNS: Record<SharedTableName, readonly string[]> = {
   dayClosings: ['id', 'businessDate', 'bills', 'returns', 'netSalesPaise', 'cashReceivedPaise', 'cashRefundedPaise', 'cashFromAccountsPaise', 'upiNetPaise', 'cardNetPaise', 'onAccountNetPaise', 'countedCashPaise', 'note', 'closedAt', 'closedBy'],
   loyaltySettings: ['id', 'enabled', 'spendPerPointPaise', 'pointValuePaise'],
   loyaltyLedger: ['id', 'customerId', 'type', 'points', 'invoiceId', 'sourceInvoiceId', 'createdAt', 'note'],
-  heldBills: ['id', 'label', 'createdAt', 'updatedAt', 'itemCount', 'totalPaise', 'tableNumber', 'tokenNumber', 'discount', 'interState', 'customerId', 'buyerName', 'buyerPhone', 'buyerGstin'],
+  heldBills: ['id', 'label', 'createdAt', 'updatedAt', 'itemCount', 'totalPaise', 'tableNumber', 'tokenNumber', 'discount', 'interState', 'placeOfSupplyStateCode', 'customerId', 'buyerName', 'buyerPhone', 'buyerGstin'],
   heldBillLines: ['id', 'heldBillId', 'sortOrder', 'snapshot'],
   quotations: ['id', 'number', 'createdAt', 'validUntil', 'customerName', 'customerPhone', 'itemCount', 'totalPaise', 'status', 'convertedInvoiceId', 'customerId'],
   quotationLines: ['id', 'quotationId', 'sortOrder', 'snapshot'],
@@ -191,6 +191,8 @@ export async function toSharedPayload(input: {
     const { lines, payments, customer, ...row } = invoice as InvoiceRecord & { customer?: { id: string } | null };
     emit(t, 'invoices', {
       ...row,
+      // The format requires the seller's phone; older invoices were saved without one.
+      seller: { ...invoice.seller, phone: invoice.seller.phone ?? '' },
       customerId: customer?.id ?? null,
       customer: customer ?? null,
       placeOfSupply: invoice.placeOfSupply ?? placeOfSupplyFor(invoice),
