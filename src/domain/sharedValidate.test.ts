@@ -113,4 +113,14 @@ describe('a realistic export', () => {
     expect(result.valid).toBe(false);
     expect(result.problems.some(x => x.field === 'seller.phone')).toBe(true);
   });
+
+  it('accepts a held bill without a place of supply and rejects a bad one', () => {
+    const payload = validPayload() as unknown as { tables: { heldBills: Array<Record<string, unknown>> } };
+    payload.tables.heldBills = [{ id: '8d0d6a54-2b61-4a55-9a53-1c3d4e5f6a7b', label: 'T', createdAt: 1, updatedAt: 1, itemCount: 0, totalPaise: '0', tableNumber: null, tokenNumber: null, discount: {}, interState: false, customerId: '', buyerName: null, buyerPhone: null, buyerGstin: null }];
+    expect(validateSharedPayload(payload).valid).toBe(true);
+    payload.tables.heldBills[0]!.placeOfSupplyStateCode = '29';
+    expect(validateSharedPayload(payload).valid).toBe(true);
+    payload.tables.heldBills[0]!.placeOfSupplyStateCode = 'Karnataka';
+    expect(validateSharedPayload(payload).problems.some(x => x.field === 'placeOfSupplyStateCode')).toBe(true);
+  });
 });
