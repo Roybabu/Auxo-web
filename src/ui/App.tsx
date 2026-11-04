@@ -39,6 +39,7 @@ import {QuotationService} from '../application/quotationService';
 import {DashboardService} from '../application/dashboardService';
 import {DashboardPage,EmployeeOverview} from './DashboardPage';
 import {StockAlertsPage} from './StockAlertsPage';
+import {LockScreen,QuickUnlockPage} from './QuickUnlockPages';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured,shops),sales=new SalesService(secured,secured);
@@ -59,7 +60,7 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   {label:'Stock',items:[['/products','Products','MANAGE_PRODUCTS'],['/inventory','Inventory','VIEW_STOCK_RECORDS'],['/stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['/stock-count','Stock count','ADJUST_STOCK'],['/categories','Product categories','MANAGE_SETTINGS']]},
   {label:'People',items:[['/customers','Customers','MANAGE_CUSTOMERS'],['/suppliers','Suppliers','MANAGE_SUPPLIERS'],['/employees','Employees','MANAGE_USERS'],['/loyalty','Customer loyalty','MANAGE_LOYALTY']]},
   {label:'Reports',items:[['/reports','Reports','VIEW_REPORTS'],['/gst','GST reports','GST_REPORT'],['/closing','Day-end closing','CLOSE_DAY'],['/activity','Activity log','VIEW_ACTIVITY_LOG']]},
-  {label:'More',items:[['/purchases','Purchases','MANAGE_PURCHASES'],['/backups','Backups','BACKUP_AND_RESTORE'],['/settings','Settings','MANAGE_SETTINGS'],['/recovery','Recovery code','MANAGE_USERS']]}
+  {label:'More',items:[['/purchases','Purchases','MANAGE_PURCHASES'],['/backups','Backups','BACKUP_AND_RESTORE'],['/settings','Settings','MANAGE_SETTINGS'],['/quick-unlock','Quick unlock',null],['/recovery','Recovery code','MANAGE_USERS']]}
 ];
 function TopBar({user}:{user:{name:string;role:string}}){
   const {pathname}=useLocation();
@@ -67,14 +68,14 @@ function TopBar({user}:{user:{name:string;role:string}}){
   const activeGroup=groups.find(group=>group.items.some(([path])=>path==='/'?pathname==='/':pathname===path||pathname.startsWith(path+'/')))??groups[0];
   return <header className="topbar"><div className="topbar-row"><div className="brand"><svg width="42" height="42" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#167D55"/><path d="M20 31V19M20 19c0-5 3-8 8-8 0 5-3 8-8 8zM20 24c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg><strong>AUXO</strong></div>
     <nav className="topnav" aria-label="Main navigation">{groups.map(group=><NavLink key={group.label} to={group.items[0]![0]} end={group.label==='Home'} className={group===activeGroup?'active':''}>{group.label}</NavLink>)}</nav>
-    <div className="topbar-user"><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
+    <div className="topbar-user"><button type="button" className="secondary lock-button" onClick={()=>auth.lock()}>🔒 Lock</button><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
     {activeGroup&&activeGroup.items.length>1&&<nav className="subnav" aria-label={`${activeGroup.label} pages`}>{activeGroup.items.map(([path,label])=><NavLink key={path} to={path}>{label}</NavLink>)}</nav>}
   </header>;
 }
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
 function RecoveryRoute(){const navigate=useNavigate();return <RecoverySetupPage auth={auth} onDone={()=>navigate('/settings')}/>;}
 export default function App(){
-  const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[needsCategorySetup,setNeedsCategorySetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
+  const user=useSyncExternalStore(auth.subscribe,auth.getSnapshot),locked=useSyncExternalStore(auth.subscribe,auth.getLocked),recoveryPrompt=useSyncExternalStore(auth.subscribe,auth.getRecoveryPrompt);const [setup,setSetup]=useState<boolean|null>(null),[needsCategorySetup,setNeedsCategorySetup]=useState<boolean|null>(null),[bootError,setBootError]=useState('');
   useEffect(()=>{auth.needsSetup().then(setSetup).catch(e=>setBootError(e instanceof Error?e.message:'Local accounts could not be opened.'));},[]);
   useEffect(()=>{if(!user){setNeedsCategorySetup(false);return;}categories.needsSetup().then(setNeedsCategorySetup).catch(e=>setBootError(e instanceof Error?e.message:'Local categories could not be opened.'));},[user?.id]);
   useEffect(()=>{const onRestore=(event:StorageEvent)=>{if(event.key==='auxo-genesis-restored')void auth.signOut().catch(()=>{});};window.addEventListener('storage',onRestore);return()=>window.removeEventListener('storage',onRestore);},[]);
@@ -88,6 +89,7 @@ export default function App(){
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
   if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
   if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;
+  if(locked)return <LockScreen auth={auth} userName={user.name}/>;
   return <HashRouter><div className="workspace"><TopBar user={user}/><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard}/>:<EmployeeOverview name={user.name}/>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count','stock-alerts'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
@@ -103,6 +105,7 @@ export default function App(){
     <Route path="/employees" element={<Guard permission="MANAGE_USERS"><EmployeesPage auth={auth}/></Guard>}/>
     <Route path="/settings" element={<Guard permission="MANAGE_SETTINGS"><ShopPage service={shops} photos={productPhotos}/></Guard>}/>
     <Route path="/categories" element={<Guard permission="MANAGE_SETTINGS"><CategoriesPage service={categories}/></Guard>}/>
+    <Route path="/quick-unlock" element={<QuickUnlockPage auth={auth}/>}/>
     <Route path="/recovery" element={<Guard permission="MANAGE_USERS"><RecoveryRoute/></Guard>}/>
     <Route path="/suppliers" element={<Guard permission="MANAGE_SUPPLIERS"><SuppliersPage service={purchasing}/></Guard>}/>
     <Route path="/purchases" element={<Guard permission="MANAGE_PURCHASES"><PurchasesPage service={purchasing} canReceive={auth.can('RECEIVE_GOODS')}/></Guard>}/>
