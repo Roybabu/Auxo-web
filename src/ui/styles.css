@@ -259,6 +259,21 @@ details.bill-extra .customer-form{grid-template-columns:1fr;margin-top:6px}
 .lock-screen button[type=submit]{width:100%;font-size:18px;padding:16px}
 .lock-button{white-space:nowrap}
 
+/* ---- Layout fixes: header fit, page alignment, purchase rows ---- */
+main{box-sizing:border-box;width:min(1280px,calc(100% - 2*clamp(16px,2.6vw,40px)));max-width:none;margin:0 auto;padding:28px 0 48px}
+.auth-screen{width:auto}
+.topbar-row{flex-wrap:nowrap}
+.topnav{flex:0 1 auto;min-width:0}
+.topbar-user{flex:none}
+@media(max-width:1320px){.user-chip{display:none}}
+@media(max-width:1060px){.topbar-row{flex-wrap:wrap;justify-content:center}.topnav{order:3;flex:1 1 100%;justify-content:center}.topbar-user{margin-left:auto}.brand{margin-right:auto}.subnav{justify-content:flex-start}}
+main>section:not(.bento-home)>:is(button,.action){justify-self:start}
+.purchase-line{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end;padding:14px 0}
+.purchase-line label{min-width:0;margin:0}
+.purchase-line input,.purchase-line select{width:100%;max-width:none;min-width:0}
+.purchase-line button{margin:0}
+@media(max-width:700px){.purchase-line{grid-template-columns:1fr 1fr}}
+
 }
 
 @media print{.workspace>header{display:none!important}}
