@@ -191,6 +191,21 @@ export class LocalDatabase implements ShopStorage, CatalogStorage, SalesStorage 
     for(const item of data.heldBills)await tx.objectStore('heldBills').add(item);for(const item of data.suppliers)await tx.objectStore('suppliers').add(item);for(const item of data.purchaseOrders)await tx.objectStore('purchaseOrders').add(item);for(const item of data.purchaseReceipts)await tx.objectStore('purchaseReceipts').add(item);for(const item of data.dayClosings)await tx.objectStore('dayClosings').add(item);await tx.objectStore('loyaltySettings').put({id:'rules',...data.loyaltyRules});for(const item of data.loyaltyLedger)await tx.objectStore('loyaltyLedger').add(item);for(const item of data.stockBatches)await tx.objectStore('stockBatches').add(item);for(const item of data.auditLog??[])await tx.objectStore('auditLog').add(item);for(const item of data.stockCounts??[])await tx.objectStore('stockCounts').add(item);for(const item of data.categories??[])await tx.objectStore('categories').add(item);for(const photo of data.productPhotos??[])await tx.objectStore('productPhotos').add(photo);await tx.objectStore('appMeta').put(true,'categorySetupDone');
     await tx.done;
   }
+
+  async countAccounts(){return (await this.listAccounts()).length;}
+  /** Replaces business data only. Local accounts, the app's own metadata and the database key are kept. */
+  async replaceBusinessData(data:BusinessSnapshot){const names=['shop','products','movements','invoices','quotations','customers','customerLedger','heldBills','suppliers','purchaseOrders','purchaseReceipts','dayClosings','loyaltySettings','loyaltyLedger','stockBatches','auditLog','stockCounts','categories','productPhotos'] as const;const db=await this.connect();const tx=db.transaction([...names,'appMeta' as const],'readwrite');
+    for(const name of names)await tx.objectStore(name).clear();
+    if(data.shop)await tx.objectStore('shop').put(data.shop,'identity');
+    for(const item of data.products)await tx.objectStore('products').add(item);
+    for(const item of data.movements)await tx.objectStore('movements').add(item);
+    for(const item of data.invoices)await tx.objectStore('invoices').add(item);
+    for(const item of data.quotations??[])await tx.objectStore('quotations').add(item);
+    for(const item of data.customers)await tx.objectStore('customers').add(item);
+    for(const item of data.customerLedger)await tx.objectStore('customerLedger').add(item);
+    for(const item of data.heldBills)await tx.objectStore('heldBills').add(item);for(const item of data.suppliers)await tx.objectStore('suppliers').add(item);for(const item of data.purchaseOrders)await tx.objectStore('purchaseOrders').add(item);for(const item of data.purchaseReceipts)await tx.objectStore('purchaseReceipts').add(item);for(const item of data.dayClosings)await tx.objectStore('dayClosings').add(item);await tx.objectStore('loyaltySettings').put({id:'rules',...data.loyaltyRules});for(const item of data.loyaltyLedger)await tx.objectStore('loyaltyLedger').add(item);for(const item of data.stockBatches)await tx.objectStore('stockBatches').add(item);for(const item of data.auditLog??[])await tx.objectStore('auditLog').add(item);for(const item of data.stockCounts??[])await tx.objectStore('stockCounts').add(item);for(const item of data.categories??[])await tx.objectStore('categories').add(item);for(const photo of data.productPhotos??[])await tx.objectStore('productPhotos').add(photo);await tx.objectStore('appMeta').put(true,'categorySetupDone');
+    await tx.done;
+  }
   async listSuppliers(){return (await (await this.connect()).getAll('suppliers')).sort((a,b)=>a.name.localeCompare(b.name));}
   async saveSupplier(supplier:Supplier,audit?:AuditWrite){const db=await this.connect(),tx=db.transaction(['suppliers','auditLog'],'readwrite');await tx.objectStore('suppliers').put(supplier);if(audit)await this.addAudit(tx,audit);await tx.done;}
   async listPurchaseOrders(){return (await (await this.connect()).getAll('purchaseOrders')).sort((a,b)=>b.createdAt-a.createdAt);}

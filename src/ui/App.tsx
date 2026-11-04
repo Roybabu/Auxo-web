@@ -13,7 +13,7 @@ import { InventoryPage, ProductsPage } from './CatalogPages';
 import { SalesPage } from './SalesPage';
 import { CustomerAccountsPage } from './CustomerAccountsPage';
 import { AuthPage, EmployeesPage, RecoverySetupPage } from './AuthPages';
-import { BackupService } from '../application/backupService';
+import { SharedBackupService } from '../application/sharedBackupService';
 import { AutoBackupService } from '../application/autoBackupService';
 import { BackupPage } from './BackupPage';
 import { SuppliersPage, PurchasesPage } from './PurchasingPages';
@@ -41,7 +41,7 @@ import {StockAlertsPage} from './StockAlertsPage';
 
 const database=new LocalDatabase();const auth=new AuthService(database);const secured=new AuthorizedStorage(database,auth);
 const shops=new ShopService(secured),catalog=new CatalogService(secured,shops),sales=new SalesService(secured,secured);
-const backups=new BackupService(database,auth);const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
+const sharedBackups=new SharedBackupService(database,auth);const autoBackups=new AutoBackupService(database,auth);const purchasing=new PurchasingService(secured);const reporting=new ReportingService(database,auth);const dayEnd=new DayEndService(database,auth);const loyalty=new LoyaltyService(secured,auth);
 const activityLog=new ActivityLogService(database,auth);
 const quotations=new QuotationService(database,auth);
 const productPhotos=new ProductPhotoService(database);
@@ -60,7 +60,7 @@ export default function App(){
   useEffect(()=>{if(user)setSetup(false);},[user]);
   if(bootError)return <main className="auth-screen"><section><h1>Local data unavailable</h1><p role="alert">{bootError}</p></section></main>;
   if(setup===null)return <main className="auth-screen"><section>Opening local accounts…</section></main>;
-  if(!user)return <AuthPage auth={auth} setup={setup}/>;
+  if(!user)return <AuthPage auth={auth} setup={setup} shared={sharedBackups}/>;
   if(recoveryPrompt)return <main className="auth-screen"><RecoverySetupPage auth={auth} required={recoveryPrompt==='required'}/></main>;
   if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
   if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;
@@ -85,7 +85,7 @@ export default function App(){
     <Route path="/recovery" element={<Guard permission="MANAGE_USERS"><RecoveryRoute/></Guard>}/>
     <Route path="/suppliers" element={<Guard permission="MANAGE_SUPPLIERS"><SuppliersPage service={purchasing}/></Guard>}/>
     <Route path="/purchases" element={<Guard permission="MANAGE_PURCHASES"><PurchasesPage service={purchasing} canReceive={auth.can('RECEIVE_GOODS')}/></Guard>}/>
-    <Route path="/backups" element={<Guard permission="BACKUP_AND_RESTORE"><BackupPage service={backups} autoBackups={autoBackups}/></Guard>}/>
+    <Route path="/backups" element={<Guard permission="BACKUP_AND_RESTORE"><BackupPage shared={sharedBackups} autoBackups={autoBackups}/></Guard>}/>
     <Route path="/reports" element={<Guard permission="VIEW_REPORTS"><ReportsPage service={reporting}/></Guard>}/>
     <Route path="/gst" element={<Guard permission="GST_REPORT"><GstReportPage service={reporting}/></Guard>}/>
     <Route path="/closing" element={<Guard permission="CLOSE_DAY"><DayEndPage service={dayEnd} user={user.name}/></Guard>}/>

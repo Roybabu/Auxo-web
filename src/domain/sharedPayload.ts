@@ -17,6 +17,7 @@
 import type { BusinessSnapshot } from './backup';
 import type { Product, ProductVariant } from './catalog';
 import { placeOfSupplyFor, type InvoiceRecord } from './billing';
+import { BUILT_IN_CATEGORY_FROM_ID, BUILT_IN_CATEGORY_IDS, REQUIRED } from './sharedSpec';
 import type { ShopCategory, ShopSubcategory } from './categories';
 import type { QuotationRecord } from './quotations';
 import type { StockCountRecord } from './stockCount';
@@ -24,14 +25,8 @@ import type { HeldBill } from './heldBills';
 import type { PurchaseOrder, PurchaseReceipt } from './purchasing';
 import type { DayClosing } from './dayEnd';
 
-export const SHARED_TABLE_NAMES = [
-  'settings', 'categories', 'subcategories', 'products', 'variants', 'stockBatches', 'stockMovements',
-  'customers', 'customerLedger', 'invoices', 'invoiceLines', 'payments', 'suppliers', 'purchaseOrders',
-  'purchaseOrderLines', 'receipts', 'receiptLines', 'dayClosings', 'loyaltySettings', 'loyaltyLedger',
-  'heldBills', 'heldBillLines', 'quotations', 'quotationLines', 'stockCounts', 'stockCountLines',
-  'auditLog', 'numberSequences', 'extensions',
-] as const;
-export type SharedTableName = (typeof SHARED_TABLE_NAMES)[number];
+export { SHARED_TABLE_NAMES, type SharedTableName } from './sharedTableNames';
+import { SHARED_TABLE_NAMES, type SharedTableName } from './sharedTableNames';
 
 export type SharedRow = Record<string, unknown>;
 export type SharedTables = Record<SharedTableName, SharedRow[]>;
@@ -107,7 +102,34 @@ function withoutKeys(row: SharedRow, keys: readonly string[]): SharedRow {
 }
 
 /** Splits a row into its spec columns and web-only extras; extras go to an org.auxo.web extension record. */
-function emit(tables: SharedTables, table: SharedTableName, row: SharedRow): void {
+/** Values the spec requires that the web app may leave out, filled with the web app's own defaults. */
+const FILL_DEFAULTS: Partial<Record<SharedTableName, Record<string, (row: SharedRow) => unknown>>> = {
+  settings: {
+    gstin: () => '', stateCode: () => '', gstRegistered: () => false, pricesIncludeTax: () => true, roundOff: () => true,
+    invoicePrefix: () => 'INV', creditNotePrefix: () => 'CN', phone: () => '', fssai: () => '', upiId: () => '', upiPayeeName: () => '',
+    receiptPaper: () => 'THERMAL_80', receiptFooter: () => 'Thank you for shopping with us!', receiptLanguage: () => 'en',
+    receiptShowHsn: () => true, receiptShowTaxBreakdown: () => true, receiptShowCustomer: () => true, receiptShowSavings: () => true,
+    receiptShowBarcode: () => true, receiptShowUpiQr: () => true, employeeDiscountLimitBp: () => 0,
+    expiryWarningDays: () => 30, metalRatesPaise: () => ({}),
+  },
+  products: { available: () => true, tracksStock: () => true },
+  variants: { sku: () => '', barcode: () => '', size: () => '', colour: () => '' },
+  invoices: {
+    type: () => 'SALE', gstRegistered: () => false, pricesIncludeTax: () => true, interState: () => false,
+    roundedToRupee: () => false, loyaltyPointsRedeemed: () => 0, loyaltyDiscountPaise: () => '0',
+    savingsPaise: row => row.discountPaise,
+  },
+  invoiceLines: { customItem: () => false, returnedQuantity: () => 0 },
+};
+
+function emit(tables: SharedTables, table: SharedTableName, input: SharedRow): void {
+  const row: SharedRow = { ...input };
+  for (const [field, fill] of Object.entries(FILL_DEFAULTS[table] ?? {})) {
+    if (row[field] === undefined) row[field] = fill(row);
+  }
+  for (const [field, kind] of Object.entries(REQUIRED[table])) {
+    if (row[field] === undefined && kind.endsWith('?')) row[field] = null;
+  }
   const allowed = new Set<string>(SPEC_COLUMNS[table]);
   const spec: SharedRow = {};
   const extra: SharedRow = {};
@@ -139,13 +161,14 @@ export async function toSharedPayload(input: {
 
   for (const category of s.categories as ShopCategory[]) {
     const { subcategories = [], ...row } = category;
-    emit(t, 'categories', row);
-    for (const sub of subcategories as ShopSubcategory[]) emit(t, 'subcategories', { ...sub, categoryId: category.id });
+    emit(t, 'categories', { ...row, id: BUILT_IN_CATEGORY_IDS[row.id] ?? row.id });
+    for (const sub of subcategories as ShopSubcategory[]) emit(t, 'subcategories', { ...sub, categoryId: BUILT_IN_CATEGORY_IDS[category.id] ?? category.id });
   }
 
   for (const product of s.products as Product[]) {
     const { variants, ...row } = product;
-    emit(t, 'products', row);
+    const categoryId = row.categoryId !== undefined ? BUILT_IN_CATEGORY_IDS[row.categoryId] ?? row.categoryId : undefined;
+    emit(t, 'products', { ...row, categoryId });
     for (const variant of variants as ProductVariant[]) {
       const { stock, netQuantity, ...rest } = variant;
       emit(t, 'variants', {
@@ -173,7 +196,10 @@ export async function toSharedPayload(input: {
       placeOfSupply: invoice.placeOfSupply ?? placeOfSupplyFor(invoice),
     });
     for (const [index, line] of lines.entries()) {
-      emit(t, 'invoiceLines', { ...line, id: await deriveSharedId('invoiceLine', invoice.id, String(index)), invoiceId: invoice.id });
+      const originalLineId = invoice.originalInvoiceId && line.originalLineIndex !== undefined
+        ? await deriveSharedId('invoiceLine', invoice.originalInvoiceId, String(line.originalLineIndex))
+        : null;
+      emit(t, 'invoiceLines', { ...line, id: await deriveSharedId('invoiceLine', invoice.id, String(index)), invoiceId: invoice.id, originalLineId });
     }
     for (const [index, payment] of payments.entries()) {
       emit(t, 'payments', { ...payment, id: await deriveSharedId('payment', invoice.id, String(index)), invoiceId: invoice.id, createdAt: invoice.createdAt });
@@ -215,7 +241,7 @@ export async function toSharedPayload(input: {
   for (const quotation of s.quotations as QuotationRecord[]) {
     const { cart, ...row } = quotation as QuotationRecord & { cart: { lines: unknown[] } & Record<string, unknown> };
     const { lines, ...cartHeader } = cart;
-    emit(t, 'quotations', row);
+    emit(t, 'quotations', { ...row, customerId: (row as { customerId?: string | null }).customerId ?? (cart.customerId || null) });
     for (const [index, line] of lines.entries()) {
       emit(t, 'quotationLines', { id: await deriveSharedId('quotationLine', quotation.id, String(index)), quotationId: quotation.id, sortOrder: index, snapshot: line });
     }
@@ -314,14 +340,16 @@ export function fromSharedPayload(payload: SharedPayload): SharedSourceSnapshot 
       }
       return variant;
     });
-    return { ...restore('products', row), variants } as unknown as Product;
+    const product = restore('products', row);
+    if (typeof product.categoryId === 'string') product.categoryId = BUILT_IN_CATEGORY_FROM_ID[product.categoryId] ?? product.categoryId;
+    return { ...product, variants } as unknown as Product;
   });
 
   const invoices = t.invoices.map(row => {
-    const invoice = restore('invoices', row, ['customerId']);
+    const invoice = restore('invoices', row, ['customerId', 'savingsPaise']);
     return {
       ...invoice,
-      lines: (linesByInvoice.get(String(row.id)) ?? []).map(l => restore('invoiceLines', l, ['id', 'invoiceId'])),
+      lines: (linesByInvoice.get(String(row.id)) ?? []).map(l => restore('invoiceLines', l, ['id', 'invoiceId', 'originalLineId'])),
       payments: (paymentsByInvoice.get(String(row.id)) ?? []).map(p => restore('payments', p, ['id', 'invoiceId', 'createdAt'])),
     };
   });
@@ -331,6 +359,7 @@ export function fromSharedPayload(payload: SharedPayload): SharedSourceSnapshot 
     loyaltyRules,
     categories: t.categories.map(row => ({
       ...restore('categories', row),
+      id: BUILT_IN_CATEGORY_FROM_ID[String(row.id)] ?? row.id,
       subcategories: (subsByCategory.get(String(row.id)) ?? []).map(sub => restore('subcategories', sub, ['categoryId'])),
     })) as unknown as SharedSourceSnapshot['categories'],
     products: products as unknown as SharedSourceSnapshot['products'],
@@ -366,7 +395,9 @@ export function fromSharedPayload(payload: SharedPayload): SharedSourceSnapshot 
       const lines = (quoteLinesByQuote.get(String(row.id)) ?? [])
         .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
         .map(l => l.snapshot);
-      return { ...restore('quotations', row), cart: { ...cartHeader, lines } };
+      const quotation = restore('quotations', row);
+      if (quotation.customerId === (cartHeader as { customerId?: unknown }).customerId) delete quotation.customerId;
+      return { ...quotation, cart: { ...cartHeader, lines } };
     }) as unknown as SharedSourceSnapshot['quotations'],
     stockCounts: t.stockCounts.map(row => ({
       ...restore('stockCounts', row),

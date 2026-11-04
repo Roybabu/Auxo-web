@@ -93,3 +93,16 @@ describe('shared payload validator', () => {
     expect(validateSharedPayload('nope').valid).toBe(false);
   });
 });
+
+import { toSharedPayload } from './sharedPayload';
+import { realisticSample } from './sharedFixtures';
+
+describe('a realistic export', () => {
+  it('passes the checker with no problems once IDs are UUIDs', async () => {
+    const snapshot = await realisticSample();
+    const payload = await toSharedPayload({ snapshot: snapshot as never, photos: [], createdAt: 1, appVersion: 'test' });
+    const result = validateSharedPayload(JSON.parse(JSON.stringify(payload)));
+    expect(result.problems).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+});
