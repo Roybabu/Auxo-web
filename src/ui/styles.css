@@ -129,7 +129,7 @@ section.bento-home{background:transparent;box-shadow:none;padding:0}
 
 /* ---- Top navigation (replaces the old sidebar) ---- */
 .workspace{display:block}
-.topbar{position:sticky;top:0;z-index:20;padding:14px clamp(16px,2.6vw,40px) 0;background:linear-gradient(180deg,var(--bg) 78%,rgba(237,242,236,0))}
+.topbar{position:sticky;top:0;z-index:20;padding:14px clamp(16px,2.6vw,40px) 14px;background:var(--bg);box-shadow:0 1px 0 rgba(15,31,24,.06)}
 .topbar-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 22px;max-width:1280px;margin:0 auto}
 .brand{display:flex;align-items:center;gap:10px}.brand strong{font-size:26px;font-weight:900;letter-spacing:-.04em}
 .topnav{display:flex;flex-wrap:wrap;gap:4px;background:#fff;border-radius:999px;padding:6px;box-shadow:0 8px 20px rgba(15,31,24,.07)}
@@ -169,7 +169,7 @@ main>section:not(.bento-home)>:is(form,div,article):not(.tile):not(.tiles-form):
 /* Tiles inside forms (Settings, Backups) */
 .tile section{background:transparent;box-shadow:none;padding:0;border-radius:0}
 .backup-preview.tile-wide{background:var(--yellow);border-radius:26px;padding:22px}
-fieldset.tiles{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:18px;align-items:start;min-width:0}
+fieldset.tiles{min-inline-size:0;width:100%;border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:18px;align-items:start;min-width:0}
 .tile{border-radius:30px;padding:clamp(18px,2vw,26px);box-shadow:0 10px 28px rgba(15,31,24,.06);display:flex;flex-direction:column;gap:2px;min-width:0;transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease}
 .tile:hover{transform:translateY(-4px);box-shadow:0 20px 36px rgba(15,31,24,.12)}
 .tile>h2{margin:0 0 10px;font-size:22px}
@@ -273,6 +273,11 @@ main>section:not(.bento-home)>:is(button,.action){justify-self:start}
 .purchase-line input,.purchase-line select{width:100%;max-width:none;min-width:0}
 .purchase-line button{margin:0}
 @media(max-width:700px){.purchase-line{grid-template-columns:1fr 1fr}}
+
+/* ---- Fit fixes: tile forms and the sticky header ---- */
+.tile .form-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.tile .form-grid label{margin:0 0 8px}
+.tile .form-grid input{width:100%;max-width:none;min-width:0}
 
 }
 
