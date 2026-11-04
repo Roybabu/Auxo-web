@@ -11,7 +11,7 @@
 
 import type { BusinessSnapshot } from './backup';
 import type { Product, ProductVariant } from './catalog';
-import type { InvoiceRecord } from './billing';
+import { placeOfSupplyFor, type InvoiceRecord } from './billing';
 import type { ShopCategory, ShopSubcategory } from './categories';
 import type { QuotationRecord } from './quotations';
 import type { StockCountRecord } from './stockCount';
@@ -94,7 +94,7 @@ export async function toSharedPayload(input: {
 
   for (const invoice of s.invoices as InvoiceRecord[]) {
     const { lines, payments, ...row } = invoice;
-    t.invoices.push(row);
+    t.invoices.push({ ...row, placeOfSupply: invoice.placeOfSupply ?? placeOfSupplyFor(invoice) });
     for (const [index, line] of lines.entries()) {
       t.invoiceLines.push({ ...line, id: await deriveSharedId('invoiceLine', invoice.id, String(index)), invoiceId: invoice.id });
     }

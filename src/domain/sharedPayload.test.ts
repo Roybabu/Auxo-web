@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { placeOfSupplyFor } from './billing';
 import {
   SHARED_TABLE_NAMES,
   deriveSharedId,
@@ -22,7 +23,7 @@ function sampleSnapshot(): SharedSourceSnapshot {
     customers: [{ id: 'c-1', name: 'Asha', phone: '9000000001', creditLimitPaise: '100000', balancePaise: '-5000', onHold: false, createdAt: 1000 }],
     customerLedger: [{ id: 'l-1', customerId: 'c-1', type: 'PAYMENT', amountPaise: '5000', invoiceId: null, invoiceNumber: null, method: 'CASH', reference: null, createdAt: 3000, note: null }],
     invoices: [{
-      id: 'i-1', number: 'INV/26-27/00001', createdAt: 4000, type: 'SALE', lines: [line, { ...line, variantId: 'v-2', quantity: 1 }],
+      id: 'i-1', number: 'INV/26-27/00001', createdAt: 4000, type: 'SALE', placeOfSupply: '19', lines: [line, { ...line, variantId: 'v-2', quantity: 1 }],
       subtotalPaise: '149700', lineDiscountPaise: '0', billDiscountPaise: '0', discountPaise: '0', billDiscountReason: null,
       taxablePaise: '142571', cgstPaise: '3571', sgstPaise: '3571', igstPaise: '0', roundOffPaise: '0', roundedToRupee: false, grandTotalPaise: '149700',
       gstRegistered: true, pricesIncludeTax: true, interState: false,
@@ -120,5 +121,24 @@ describe('shared payload mapping (web)', () => {
     const payload = await toSharedPayload({ snapshot: sampleSnapshot(), photos: [], createdAt: 1, appVersion: 'test' });
     const { heldBillLines: _removed, ...tables } = payload.tables;
     expect(() => fromSharedPayload({ ...payload, tables } as SharedPayload)).toThrow(/heldBillLines/);
+  });
+
+  it('fills place of supply for older invoices that do not store it', async () => {
+    const snapshot = sampleSnapshot();
+    const { placeOfSupply: _omit, ...oldInvoice } = snapshot.invoices[0]!;
+    const { tables } = await toSharedPayload({ snapshot: { ...snapshot, invoices: [oldInvoice] } as SharedSourceSnapshot, photos: [], createdAt: 1, appVersion: 'test' });
+    expect(tables.invoices[0]).toMatchObject({ placeOfSupply: '19' });
+  });
+});
+
+describe('place of supply rule', () => {
+  it('uses the buyer state for inter-state sales with a known buyer state', () => {
+    expect(placeOfSupplyFor({ interState: true, buyer: { stateCode: '07' }, seller: { stateCode: '19' } })).toBe('07');
+  });
+  it('uses the seller state for in-state sales', () => {
+    expect(placeOfSupplyFor({ interState: false, buyer: { stateCode: '07' }, seller: { stateCode: '19' } })).toBe('19');
+  });
+  it('falls back to the seller state when the buyer state is unknown', () => {
+    expect(placeOfSupplyFor({ interState: true, buyer: null, seller: { stateCode: '19' } })).toBe('19');
   });
 });

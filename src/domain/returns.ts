@@ -1,5 +1,5 @@
 import { checkedMoney } from './money';
-import type { InvoiceLineSnapshot, InvoiceRecord, PaymentDraft } from './billing';
+import { placeOfSupplyFor, type InvoiceLineSnapshot, type InvoiceRecord, type PaymentDraft } from './billing';
 
 export type RefundMethod=PaymentDraft['method'];
 const halfUp=(n:bigint,d:bigint)=>(n+d/2n)/d;
@@ -27,5 +27,5 @@ export function buildReturn(original:InvoiceRecord,requested:readonly number[],m
   const taxable=sum(lines.map(l=>BigInt(l.taxablePaise))),cgst=sum(lines.map(l=>BigInt(l.cgstPaise))),sgst=sum(lines.map(l=>BigInt(l.sgstPaise))),igst=sum(lines.map(l=>BigInt(l.igstPaise))),lineTotal=sum(lines.map(l=>BigInt(l.totalPaise)));
   const lineDiscount=sum(lines.map(l=>BigInt(l.lineDiscountPaise??'0'))),billDiscount=sum(lines.map(l=>BigInt(l.billDiscountSharePaise??'0')));
   const subtotal=sum(original.lines.map((line,i)=>requested[i]?share((line.stockUnit==='UNIT'?BigInt(line.unitPricePaise)*BigInt(line.quantity):halfUp(BigInt(line.unitPricePaise)*BigInt(line.quantity),1000n)).toString(),i):0n));
-  return {returned:after,accountCredit,creditNote:{type:'RETURN',originalInvoiceId:original.id,originalInvoiceNumber:original.number,returnReason:reason.trim()||null,roundedToRupee:original.roundedToRupee,lines,subtotalPaise:subtotal.toString(),lineDiscountPaise:lineDiscount.toString(),billDiscountPaise:billDiscount.toString(),discountPaise:(lineDiscount+billDiscount).toString(),billDiscountReason:original.billDiscountReason??null,taxablePaise:taxable.toString(),cgstPaise:cgst.toString(),sgstPaise:sgst.toString(),igstPaise:igst.toString(),roundOffPaise:(refund-lineTotal).toString(),grandTotalPaise:refund.toString(),gstRegistered:original.gstRegistered,pricesIncludeTax:original.pricesIncludeTax,interState:original.interState,seller:original.seller,customer:original.customer??null,buyer:original.buyer,payments}};
+  return {returned:after,accountCredit,creditNote:{type:'RETURN',originalInvoiceId:original.id,originalInvoiceNumber:original.number,returnReason:reason.trim()||null,roundedToRupee:original.roundedToRupee,lines,subtotalPaise:subtotal.toString(),lineDiscountPaise:lineDiscount.toString(),billDiscountPaise:billDiscount.toString(),discountPaise:(lineDiscount+billDiscount).toString(),billDiscountReason:original.billDiscountReason??null,taxablePaise:taxable.toString(),cgstPaise:cgst.toString(),sgstPaise:sgst.toString(),igstPaise:igst.toString(),roundOffPaise:(refund-lineTotal).toString(),grandTotalPaise:refund.toString(),gstRegistered:original.gstRegistered,pricesIncludeTax:original.pricesIncludeTax,placeOfSupply:original.placeOfSupply??placeOfSupplyFor(original),interState:original.interState,seller:original.seller,customer:original.customer??null,buyer:original.buyer,payments}};
 }
