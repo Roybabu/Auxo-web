@@ -67,3 +67,8 @@ export function accountBalanceLabel(balancePaise:string):{state:'OWES'|'ADVANCE'
   if(balance<0n)return {state:'ADVANCE',text:`Advance ${formatMoney(-balance)}`};
   return {state:'SETTLED',text:'Settled'};
 }
+
+/** The earliest sale time among a customer's sales, or undefined when there are none. */
+export function firstSaleAt(sales:readonly {createdAt:number}[]):number|undefined{
+  return sales.reduce<number|undefined>((earliest,sale)=>earliest===undefined||sale.createdAt<earliest?sale.createdAt:earliest,undefined);
+}
