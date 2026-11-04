@@ -32,7 +32,7 @@ function sampleSnapshot(): SharedSourceSnapshot {
       payments: [{ method: 'CASH', amountPaise: '149700', reference: null, tenderedPaise: '150000', changePaise: '300', kind: 'PAYMENT' }],
       originalInvoiceId: null, originalInvoiceNumber: null, returnReason: null,
     }],
-    suppliers: [{ id: 's-1', name: 'Fabric Co', contactPerson: null, phone: null, email: null, gstin: null, stateCode: null, address: null, notes: null, active: true, createdAt: 1000, updatedAt: 1000 }],
+    suppliers: [{ id: 's-1', name: 'Fabric Co', contactPerson: null, phone: null, email: null, gstin: null, stateCode: null, address: null, notes: null, active: true, createdAt: 1000 }],
     purchaseOrders: [{ id: 'po-1', number: 'PO/26-27/00001', supplierId: 's-1', supplierName: 'Fabric Co', status: 'ORDERED', createdAt: 1000, expectedDate: '2026-12-01', note: null, lines: [{ id: 'pol-1', variantId: 'v-1', productName: 'Shirt', variantLabel: 'M / Blue', stockUnit: 'UNIT', quantityOrdered: 10, quantityReceived: 0, unitCostPaise: '30000' }] }],
     purchaseReceipts: [{ id: 'r-1', number: 'GRN/26-27/00001', supplierId: 's-1', supplierName: 'Fabric Co', orderId: 'po-1', orderNumber: 'PO/26-27/00001', supplierInvoiceNumber: 'FC-1', receivedAt: 5000, note: null, totalPaise: '300000', requestId: 'req-1', lines: [{ variantId: 'v-1', orderLineId: 'pol-1', productName: 'Shirt', variantLabel: 'M / Blue', stockUnit: 'UNIT', quantity: 10, unitCostPaise: '30000', batchNumber: null, expiryDate: null }] }],
     dayClosings: [{ id: 'd-1', figures: { date: '2026-11-02', bills: 1, returns: 0, netSalesPaise: '149700', cashReceivedPaise: '149700', cashRefundedPaise: '0', cashFromAccountsPaise: '0', upiNetPaise: '0', cardNetPaise: '0', onAccountNetPaise: '0' }, countedCashPaise: '149700', note: null, closedAt: 6000, closedBy: 'Owner' }],
@@ -140,5 +140,31 @@ describe('place of supply rule', () => {
   });
   it('falls back to the seller state when the buyer state is unknown', () => {
     expect(placeOfSupplyFor({ interState: true, buyer: null, seller: { stateCode: '19' } })).toBe('19');
+  });
+
+  it('renames web names to spec names and back (variant stock and sizes)', async () => {
+    const { tables } = await toSharedPayload({ snapshot: sampleSnapshot(), photos: [], createdAt: 1, appVersion: 'test' });
+    expect(tables.variants[0]).toMatchObject({ stockQuantity: 12, reorderQuantity: 10, netQuantityMilli: null, netQuantityUnit: null });
+    expect(tables.variants[0]).not.toHaveProperty('stock');
+    const withQty = sampleSnapshot();
+    (withQty.products[0] as unknown as { variants: Array<Record<string, unknown>> }).variants[0]!.netQuantity = { amountMilli: 500, unit: 'MILLILITRE' };
+    const restored = await roundTrip(withQty);
+    expect((restored.products[0] as unknown as { variants: Array<Record<string, unknown>> }).variants[0]).toMatchObject({ stock: 12, netQuantity: { amountMilli: 500, unit: 'MILLILITRE' } });
+  });
+
+  it('moves web-only fields into org.auxo.web extensions and restores them', async () => {
+    const snapshot = sampleSnapshot();
+    (snapshot.customers[0] as unknown as Record<string, unknown>).loyaltyTier = 'gold';
+    const { tables } = await toSharedPayload({ snapshot, photos: [], createdAt: 1, appVersion: 'test' });
+    expect(tables.customers[0]).not.toHaveProperty('loyaltyTier');
+    expect(tables.extensions).toContainEqual({ namespace: 'org.auxo.web', ownerType: 'customers', ownerId: 'c-1', key: 'fields', value: { loyaltyTier: 'gold' } });
+    const restored = await roundTrip(snapshot);
+    expect((restored.customers[0] as unknown as Record<string, unknown>).loyaltyTier).toBe('gold');
+  });
+
+  it('keeps the customer snapshot on invoices and the spec customerId column', async () => {
+    const { tables } = await toSharedPayload({ snapshot: sampleSnapshot(), photos: [], createdAt: 1, appVersion: 'test' });
+    expect(tables.invoices[0]).toMatchObject({ customerId: 'c-1' });
+    expect(tables.invoices[0]).not.toHaveProperty('customer');
   });
 });
