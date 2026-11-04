@@ -75,4 +75,15 @@ describe('first run on a new browser', () => {
     await source.db.close();
     await fresh.close();
   });
+
+  it('does not log scheduled files, but still logs manual backups', async () => {
+    const owner = await ownerDatabase('Quiet');
+    await owner.db.replaceBusinessData((await realisticSample()) as unknown as BusinessSnapshot);
+    const countBackups = async () => (await owner.db.listRecentAudit()).filter(row => row.action === 'BACKUP_CREATED').length;
+    await owner.service.export(PASS, { record: false });
+    expect(await countBackups()).toBe(0);
+    await owner.service.export(PASS);
+    expect(await countBackups()).toBe(1);
+    await owner.db.close();
+  });
 });

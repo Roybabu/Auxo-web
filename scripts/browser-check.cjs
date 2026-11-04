@@ -50,7 +50,9 @@ async function main() {
   await pa.getByRole('button', { name: /Save business and billing settings/ }).click();
   await pa.getByText('saved on this device').waitFor({ timeout: 15000 });
   await pa.goto(BASE + '#/backups');
-  await pa.getByLabel(/Backup passphrase/).first().fill(PASS);
+  await pa.getByRole('heading', { name: 'Scheduled backups to a folder' }).waitFor({ timeout: 15000 });
+  log('scheduled backup section is shown');
+  await pa.getByLabel('Backup passphrase (at least 10 characters)', { exact: true }).fill(PASS);
   await pa.getByLabel('Confirm passphrase').fill(PASS);
   const download = pa.waitForEvent('download', { timeout: 30000 }).catch(() => null);
   await pa.getByRole('button', { name: 'Download encrypted backup' }).click();
