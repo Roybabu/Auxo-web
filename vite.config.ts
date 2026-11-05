@@ -7,7 +7,7 @@ export default defineConfig({
   test: { testTimeout: 30000, hookTimeout: 30000 },
   plugins: [react(), VitePWA({
     registerType: 'autoUpdate',
-    manifest: { name: 'AUXO Genesis', short_name: 'AUXO', description: 'Offline business workspace', theme_color: '#EDF2EC', background_color: '#ffffff', display: 'standalone', start_url: '.', icons: [{src:'icon.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}] },
+    manifest: { name: 'AUXO Genesis', short_name: 'AUXO', description: 'Offline business workspace', theme_color: '#F7F7F6', background_color: '#ffffff', display: 'standalone', start_url: '.', icons: [{src:'icon.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}] },
     workbox: { globPatterns: ['**/*.{js,css,html,svg}'], cleanupOutdatedCaches: true, skipWaiting: true, clientsClaim: true },
   })],
 });

@@ -335,6 +335,83 @@ main>section:not(.bento-home)>:is(button,.action){justify-self:start}
   .user-chip{display:none}
 }
 
+
+/* ===== Minimal look (replaces the Bento Pop colours, shapes and motion; layout and fit fixes above stay) ===== */
+:root{--ink:#1B1F23;--soft:#5A626A;--bg:#F7F7F6;--card:#fff;--line:#E5E7E9;--green:#2F6F57;--green-d:#245744;--yellow:#F1F2F1;--coral:#F1F2F1;--lilac:#F1F2F1;--sky:#F1F2F1;--mint:#EEF2F0;--radius:12px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*,*::before,*::after{animation:none!important;transition:none!important}
+body{background:var(--bg)}
+h1{font-size:26px;font-weight:650;letter-spacing:-.01em;line-height:1.2}
+h2{font-weight:650;letter-spacing:0}
+label{font-weight:500}
+section,.pos-products,.dashboard-panel,.tile{border-radius:12px!important;box-shadow:none!important}
+section{border:1px solid var(--line)}
+section.bento-home,.pos-layout,.tiles-form,main>section:not(.bento-home){border:0;background:transparent}
+input,select,textarea{border:1px solid #D4D8DB;border-radius:8px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,111,87,.14)}
+button,.action{border-radius:8px;padding:10px 18px;font-weight:600}
+button:hover:not(:disabled),.action:hover{transform:none;box-shadow:none}
+.secondary{background:#fff;border:1px solid #D4D8DB;color:var(--ink)}
+.secondary:hover:not(:disabled){background:#F1F2F1}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+th{background:#FAFAF9;border-bottom:1px solid var(--line);font-weight:600;font-size:12px}
+th:first-child,th:last-child{border-radius:0}
+tbody tr:hover{background:#FAFAF9}
+fieldset,.variant-form,.invoice-detail,.loyalty-card,.employee-card,.report-card,.customer-credit-tools,.backup-status,.dashboard-backup,.account-summary,.closing-summary>div,.confirm-close,.backup-preview,.product-choice,.cart-line,.payment-row,.recovery-code{border-radius:10px!important;box-shadow:none!important}
+fieldset{border:1px solid var(--line)}
+.auth-screen section{border-radius:14px!important;box-shadow:0 8px 30px rgba(0,0,0,.06)!important;border:1px solid var(--line)}
+.auth-screen h1{background:none;color:var(--ink)}
+.recovery-code{background:#F1F2F1}
+.backup-due-banner{background:#FFF7E0;border-radius:10px}
+.report-notice{background:#FFF7E0;border-radius:8px}
+
+/* every tile / card is plain white with a hairline */
+main>section:not(.bento-home)>:is(form,div,article,details,fieldset,ul,ol):not(.pos-layout):not(.tiles-form):not(.button-row):not(.dashboard-two):not(.backup-preview),
+.tile,.tile-green,.tile-yellow,.tile-lilac,.tile-coral,.tile-sky,.tile-white,.dashboard-metrics article,.dashboard-panel{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:none!important;transform:none!important}
+.dashboard-metrics .metric-warning{background:#FFF7E0!important}.dashboard-metrics .metric-danger{background:#FDECEA!important}
+.dashboard-metrics article>span,.dashboard-metrics small,.dashboard-metrics small a{color:var(--soft)}
+.dashboard-metrics article>strong{font-weight:650;letter-spacing:-.01em}
+.bento-hero{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:22px 26px}
+.bento-hero h2{color:var(--ink);font-weight:650;font-size:22px;letter-spacing:0}
+.bento-hero p{color:var(--soft)}
+.bento-hero .action{background:var(--green);color:#fff;font-size:15px;padding:11px 20px}
+.bento-hero .action:hover{background:var(--green-d);color:#fff}
+.bento-art{display:none}
+.sales-chart-track{background:#F1F2F1;border-radius:6px}
+.sales-chart-track span{background:var(--green);border-radius:6px 6px 0 0}
+.dashboard-actions a{background:#fff;border:1px solid var(--line);border-radius:8px;font-weight:600}
+.dashboard-actions a:hover{background:#F1F2F1;transform:none}
+
+/* navigation: quiet white rail and tabs */
+.rail{background:#fff;border-right:1px solid var(--line)}
+.rail-link{color:var(--soft);border-radius:10px;font-weight:500}
+.rail-link:hover{background:#F1F2F1;color:var(--ink)}
+.rail-link.active{background:#EEF2F0;color:var(--green-d);font-weight:650}
+.rail-link:focus-visible{outline:2px solid var(--green)}
+.rail .brand svg rect{fill:var(--green)}
+.topbar{background:var(--bg);box-shadow:0 1px 0 var(--line)}
+.subnav a{background:transparent;border:0;border-radius:8px;color:var(--soft);font-weight:500;padding:8px 14px}
+.subnav a:hover{background:#EEF0EF;transform:none;color:var(--ink)}
+.subnav a.active{background:#EAEEEC;color:var(--ink);font-weight:650}
+.user-chip{background:#fff;border:1px solid var(--line);box-shadow:none;border-radius:8px;font-weight:600}
+.avatar{background:var(--green)}
+.topbar-title{font-weight:650;font-size:18px}
+
+/* billing */
+.product-choice{background:#fff;border:1px solid var(--line)}
+.product-choice:hover:not(:disabled){transform:none;background:#FAFAF9;border-color:#C5CBD0}
+.product-choice .pc-price{color:var(--ink);font-weight:650}
+.product-choice span:last-child{background:#EEF2F0;color:var(--green-d);border-radius:6px}
+.pos-products,.pos-checkout{background:#fff;border:1px solid var(--line)}
+.pos-checkout{box-shadow:none!important;border-radius:12px!important}
+.pos-checkout>h2{background:#fff;color:var(--ink);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;font-size:18px;font-weight:650}
+.pos-products>label input{border-radius:8px;padding:12px 14px 12px 44px}
+.cart-line{background:#FAFAF9;border:1px solid var(--line)}
+.payment-row{background:#FAFAF9}
+.pos-checkout .complete-sale{background:var(--green);box-shadow:none;font-size:17px;padding:16px;border-radius:8px}
+.pos-checkout .complete-sale:hover:not(:disabled){background:var(--green-d)}
+.pos-checkout .complete-sale:disabled{background:#C9D0CD}
+.grand-total,.pos-checkout .grand-total{background:#F1F2F1!important;color:var(--ink)!important;border-radius:8px}.grand-total *{color:var(--ink)!important}
+
 }
 
 @media print{.workspace>header,.rail,.topbar{display:none!important}}
