@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ShopService } from '../application/shopService';
 import { CatalogService } from '../application/catalogService';
 import { SalesService } from '../application/salesService';
@@ -52,11 +52,11 @@ const productPhotos=new ProductPhotoService(database);
 const stockCount=new StockCountService(database,auth);
 const categories=new CategoryService(database,auth);
 const dashboard=new DashboardService(database,auth);
-const modules:[string,string,Permission][]=[['pos','POS billing','SELL'],['restaurant','Restaurant','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['stock-count','Stock count','ADJUST_STOCK'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
+const modules:[string,string,Permission][]=[['pos','Billing','SELL'],['products','Products','MANAGE_PRODUCTS'],['inventory','Inventory','VIEW_STOCK_RECORDS'],['stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['stock-count','Stock count','ADJUST_STOCK'],['customers','Customers','MANAGE_CUSTOMERS'],['suppliers','Suppliers','MANAGE_SUPPLIERS'],['purchases','Purchases','MANAGE_PURCHASES'],['gst','GST reports','GST_REPORT'],['closing','Day-end closing','CLOSE_DAY'],['loyalty','Customer loyalty','MANAGE_LOYALTY'],['employees','Employees','MANAGE_USERS'],['backups','Backups','BACKUP_AND_RESTORE']];
 type NavItem=[path:string,label:string,permission:Permission|null];
 const navGroups:{label:string;items:NavItem[]}[]=[
   {label:'Home',items:[['/','Overview',null]]},
-  {label:'Billing',items:[['/pos','POS billing','SELL'],['/restaurant','Restaurant','SELL']]},
+  {label:'Billing',items:[['/pos','Billing','SELL']]},
   {label:'Stock',items:[['/products','Products','MANAGE_PRODUCTS'],['/inventory','Inventory','VIEW_STOCK_RECORDS'],['/stock-alerts','Stock alerts / reorder','VIEW_STOCK_RECORDS'],['/stock-count','Stock count','ADJUST_STOCK'],['/categories','Product categories','MANAGE_SETTINGS']]},
   {label:'People',items:[['/customers','Customers','MANAGE_CUSTOMERS'],['/suppliers','Suppliers','MANAGE_SUPPLIERS'],['/employees','Employees','MANAGE_USERS'],['/loyalty','Customer loyalty','MANAGE_LOYALTY']]},
   {label:'Reports',items:[['/reports','Reports','VIEW_REPORTS'],['/gst','GST reports','GST_REPORT'],['/closing','Day-end closing','CLOSE_DAY'],['/activity','Activity log','VIEW_ACTIVITY_LOG']]},
@@ -113,7 +113,7 @@ export default function App(){
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard}/>:<EmployeeOverview name={user.name}/>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count','stock-alerts'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
-    <Route path="/restaurant" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} restaurantMode/></Guard>}/>
+    <Route path="/restaurant" element={<Navigate to="/pos" replace/>}/>
     <Route path="/customers" element={<Guard permission="MANAGE_CUSTOMERS"><CustomerAccountsPage sales={sales} shops={shops} canReceive={auth.can('RECEIVE_ACCOUNT_PAYMENT')}/></Guard>}/>
     <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><ProductsPage service={catalog} photos={productPhotos}/></Guard>}/>
     <Route path="/products/import" element={<Guard permission="MANAGE_PRODUCTS"><ProductImportPage service={catalog}/></Guard>}/>
