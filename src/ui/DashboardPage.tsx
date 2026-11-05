@@ -1,20 +1,66 @@
-import {useEffect,useState} from 'react';
-import type {DashboardService,DashboardData} from '../application/dashboardService';
-import {formatMoney} from '../domain/money';
-import {NavLink} from 'react-router-dom';
-import {Table} from './primitives';
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {Link,NavLink} from 'react-router-dom';
+import type {DashboardInsights,DashboardService} from '../application/dashboardService';
+import type {ProductPhotoService} from '../application/productPhotoService';
+import type {Permission} from '../domain/access';
+import {COMPARE_LABELS,RANGE_LABELS,change,type Change,type RangePreset} from '../domain/dashboardStats';
+import {stockQuantityText} from '../domain/catalog';
+import {Icon,type IconName} from './icons';
+import {Thumb,rupees} from './Kit';
+import {SalesTrendChart} from './SalesTrendChart';
 
-export function DashboardPage({service}:{service:DashboardService}){
-  const [data,setData]=useState<DashboardData|null>(null),[error,setError]=useState('');
-  async function refresh(){try{setData(await service.load());setError('');}catch(e){setError(e instanceof Error?e.message:'Could not load business overview.');}}
-  useEffect(()=>{void refresh();const timer=window.setInterval(()=>void refresh(),60_000);return()=>window.clearInterval(timer);},[service]);
-  const peak=Math.max(1,...(data?.days??[]).map(day=>Math.max(0,Number(day.netPaise))));
-  return <section className="bento-home"><div className="dashboard-heading"><div><h1>Business overview</h1><p>Today’s sales, account balances and stock alerts at a glance.</p></div><button className="secondary" type="button" onClick={()=>void refresh()}>Refresh</button></div><div className="bento-hero"><div><h2>What are we selling today?</h2><p>Open billing, scan an item or pick a product to start a new bill.</p></div><div className="bento-art" aria-hidden="true"><span><svg viewBox="0 0 120 120" fill="#5B9CF0"><path d="M38 22 L52 16 Q60 28 68 16 L82 22 L102 42 L88 54 L80 47 V100 H40 V47 L32 54 L18 42 Z"/></svg></span><span><svg viewBox="0 0 120 120" fill="#8A63E6"><path d="M12 82 Q12 60 30 58 L50 50 Q62 64 82 66 Q106 68 110 84 V94 H12 Z"/></svg></span><span><svg viewBox="0 0 120 120" fill="#F08A24"><rect x="50" y="10" width="20" height="16" rx="4"/><path d="M46 28 H74 Q82 36 82 48 V100 Q82 108 74 108 H46 Q38 108 38 100 V48 Q38 36 46 28Z"/></svg></span></div><NavLink className="action" to="/pos">Start a sale</NavLink></div>{error&&<p role="alert" className="error">{error}</p>}{!data?<p>Loading business overview…</p>:<>
-    <div className="dashboard-metrics"><article><span>Net sales today</span><strong>{formatMoney(BigInt(data.salesTodayPaise))}</strong><small>{data.billsToday} sale(s) · {data.returnsToday} return(s)</small></article><article><span>Customer balances due</span><strong>{formatMoney(BigInt(data.receivablesPaise))}</strong><small>{data.customers} customer account(s)</small></article><article><span>Products</span><strong>{data.products}</strong><small><NavLink to="/inventory">View inventory</NavLink></small></article><article className={data.lowStock?'metric-warning':''}><span>Low stock variants</span><strong>{data.lowStock}</strong><small><NavLink to="/inventory">Review stock</NavLink></small></article><article className={data.expired?'metric-danger':''}><span>Expired batches</span><strong>{data.expired}</strong><small>{data.expiring} expiring soon</small></article></div>
-    <div className="dashboard-panels"><div className="dashboard-panel"><h2>Sales · last 7 days</h2><div className="sales-chart" role="img" aria-label="Net sales for the last seven days">{data.days.map(day=><div className="sales-chart-day" key={day.date}><strong>{formatMoney(BigInt(day.netPaise))}</strong><div className="sales-chart-track"><span style={{height:`${Math.max(4,Math.max(0,Number(day.netPaise))/peak*100)}%`}}/></div><small>{day.label}</small></div>)}</div></div><div className="dashboard-panel"><h2>Quick actions</h2><div className="dashboard-actions"><NavLink to="/pos">Start a sale</NavLink><NavLink to="/customers">Customer accounts</NavLink><NavLink to="/stock-count">Start stock count</NavLink><NavLink to="/reports">Open reports</NavLink></div></div></div>
-    <div className="dashboard-two"><div className="dashboard-table-tile"><h2>Recent invoices</h2><Table headings={['Invoice','Date','Customer','Items','Total']}>{data.recentInvoices.map(invoice=><tr key={invoice.id}><td>{invoice.number}{invoice.type==='RETURN'&&<small className="muted">Credit note · {invoice.originalInvoiceNumber??''}</small>}</td><td>{new Date(invoice.createdAt).toLocaleString()}</td><td>{invoice.buyer?.name??invoice.customer?.name??'Walk-in customer'}</td><td>{invoice.lines.length}</td><td>{formatMoney(BigInt(invoice.grandTotalPaise))}</td></tr>)}{!data.recentInvoices.length&&<tr><td colSpan={5}>No invoices saved yet.</td></tr>}</Table></div>
-    </div>
-  </>}</section>;
+const PRESETS:RangePreset[]=['TODAY','LAST_7_DAYS','THIS_WEEK','THIS_MONTH','LAST_3_MONTHS','LAST_6_MONTHS','LAST_YEAR','ALL_TIME','CUSTOM'];
+const FILTER_KEY='auxo-dashboard-range';
+const iso=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function greeting(hour:number){return hour<12?'Good Morning':hour<17?'Good Afternoon':'Good Evening';}
+function loadFilter():{preset:RangePreset;from:string;to:string}{const today=iso(new Date()),week=new Date();week.setDate(week.getDate()-6);const fallback={preset:'TODAY' as RangePreset,from:iso(week),to:today};try{const saved=JSON.parse(sessionStorage.getItem(FILTER_KEY)??'null');if(saved&&PRESETS.includes(saved.preset))return {...fallback,...saved};}catch{/* ignore */}return fallback;}
+
+function ChangeLine({value,compare}:{value:Change;compare:string}){
+  if(value.kind==='NONE')return <small className="card-change neutral">All recorded sales</small>;
+  if(value.kind==='NEW')return <small className="card-change up">New activity {compare}</small>;
+  if(value.kind==='SAME')return <small className="card-change neutral">No change {compare}</small>;
+  return <small className={`card-change ${value.kind==='UP'?'up':'down'}`}><span aria-hidden="true">{value.kind==='UP'?'▲':'▼'}</span> {value.kind==='UP'?'+':'−'}{value.percent}% <span className="muted">{compare}</span></small>;
 }
 
-export function EmployeeOverview({name}:{name:string}){return <section><h1>Welcome, {name}</h1><p>Open a workspace task to continue.</p><div className="dashboard-actions"><NavLink to="/pos">Start a sale</NavLink><NavLink to="/pos">Held bills and quotations</NavLink><NavLink to="/pos">Recent invoices</NavLink></div></section>;}
+function StatCard({tone,icon,label,value,delta,compare}:{tone:'green'|'blue'|'purple'|'orange';icon:IconName;label:string;value:string;delta:Change;compare:string}){
+  return <article className={`stat-card tone-${tone}`}><span className="stat-icon"><Icon name={icon} size={22}/></span><div><span className="stat-label">{label}</span><strong className="stat-value">{value}</strong><ChangeLine value={delta} compare={compare}/></div></article>;
+}
+
+function RangeFilter({preset,from,to,onChange}:{preset:RangePreset;from:string;to:string;onChange:(next:{preset:RangePreset;from:string;to:string})=>void}){
+  const [open,setOpen]=useState(false),[draft,setDraft]=useState({from,to}),ref=useRef<HTMLDivElement|null>(null);
+  useEffect(()=>{if(!open)return;setDraft({from,to});const close=(event:MouseEvent)=>{if(ref.current&&!ref.current.contains(event.target as Node))setOpen(false);};const key=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false);};document.addEventListener('mousedown',close);document.addEventListener('keydown',key);return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',key);};},[open,from,to]);
+  const label=preset==='CUSTOM'?`${new Date(from+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'})} – ${new Date(to+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}`:RANGE_LABELS[preset];
+  const valid=draft.from&&draft.to&&draft.from<=draft.to;
+  return <div className="header-pop range-filter" ref={ref}><button type="button" className="tool-button" aria-haspopup="true" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Icon name="calendar" size={17}/>{label}<Icon name="chevronDown" size={16}/></button>
+    {open&&<div className="popover range-popover" role="dialog" aria-label="Choose a date range"><div className="range-options">{PRESETS.filter(p=>p!=='CUSTOM').map(p=><button key={p} type="button" className={p===preset?'menu-row selected':'menu-row'} aria-pressed={p===preset} onClick={()=>{onChange({preset:p,from,to});setOpen(false);}}>{RANGE_LABELS[p]}{p===preset&&<Icon name="check" size={16}/>}</button>)}</div>
+      <form className="range-custom" onSubmit={e=>{e.preventDefault();if(!valid)return;onChange({preset:'CUSTOM',...draft});setOpen(false);}}><p className="popover-label">Custom date range</p><div className="range-dates"><label>From<input type="date" required value={draft.from} max={draft.to||undefined} onChange={e=>setDraft(d=>({...d,from:e.target.value}))}/></label><label>To<input type="date" required value={draft.to} min={draft.from||undefined} max={iso(new Date())} onChange={e=>setDraft(d=>({...d,to:e.target.value}))}/></label></div>{draft.from&&draft.to&&draft.from>draft.to&&<small className="error">The end date must be on or after the start date.</small>}<button type="submit" disabled={!valid}>Apply range</button></form></div>}</div>;
+}
+
+export function DashboardPage({service,photos,userName,can}:{service:DashboardService;photos:ProductPhotoService;userName:string;can:(permission:Permission)=>boolean}){
+  const [filter,setFilter]=useState(loadFilter),[data,setData]=useState<DashboardInsights|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true);
+  const refresh=useCallback(async()=>{setLoading(true);try{setData(await service.insights(filter.preset,filter.preset==='CUSTOM'?{from:filter.from,to:filter.to}:undefined));setError('');}catch(e){setError(e instanceof Error?e.message:'Could not load the dashboard.');}finally{setLoading(false);}},[service,filter]);
+  useEffect(()=>{void refresh();const timer=window.setInterval(()=>void refresh(),60_000);window.addEventListener('focus',refresh);return()=>{window.clearInterval(timer);window.removeEventListener('focus',refresh);};},[refresh]);
+  function choose(next:typeof filter){setFilter(next);try{sessionStorage.setItem(FILTER_KEY,JSON.stringify(next));}catch{/* ignore */}}
+  const compare=COMPARE_LABELS[filter.preset],cur=data?.current,prev=data?.previous??null;
+  const first=userName.trim().split(/\s+/)[0]||userName;
+  const actions:[string,string,IconName,string,boolean][]=[['/pos','New Sale','cart','purple',can('SELL')],['/inventory','Add Stock','box','green',can('VIEW_STOCK_RECORDS')],['/customers?new=1','Add Customer','people','blue',can('MANAGE_CUSTOMERS')],['/reports','Reports','chart','orange',can('VIEW_REPORTS')]];
+  return <section className="page-section dashboard">
+    <div className="dash-head"><div><h1>{greeting(new Date().getHours())}, {first} <span aria-hidden="true">👋</span></h1><p className="muted">Here’s what’s happening at your store {filter.preset==='TODAY'?'today':'in this period'}.</p></div><RangeFilter {...filter} onChange={choose}/></div>
+    {error&&<p role="alert" className="error">{error}</p>}
+    <div className={loading&&!data?'stat-grid is-loading':'stat-grid'} aria-busy={loading}>
+      <StatCard tone="green" icon="cart" label="Sales" value={cur?rupees(cur.salesPaise):'—'} delta={cur?change(cur.salesPaise,prev?.salesPaise??null):{kind:'NONE',percent:0}} compare={compare}/>
+      <StatCard tone="blue" icon="receipt" label="Bills" value={cur?String(cur.bills):'—'} delta={cur?change(cur.bills,prev?.bills??null):{kind:'NONE',percent:0}} compare={compare}/>
+      <StatCard tone="purple" icon="bag" label="Items Sold" value={cur?cur.items.toLocaleString('en-IN'):'—'} delta={cur?change(cur.items,prev?.items??null):{kind:'NONE',percent:0}} compare={compare}/>
+      <StatCard tone="orange" icon="userPlus" label="New Customers" value={cur?String(cur.newCustomers):'—'} delta={cur?change(cur.newCustomers,prev?.newCustomers??null):{kind:'NONE',percent:0}} compare={compare}/>
+    </div>
+    <div className="dash-panels">
+      <div className="panel trend-panel"><div className="panel-head"><h2>Sales Trend</h2><span className="muted small">{data?`${RANGE_LABELS[filter.preset]} · net of returns`:''}</span></div>{data?<SalesTrendChart series={data.series}/>:<div className="chart-skeleton"/>}</div>
+      <div className="panel top-panel"><div className="panel-head"><h2>Top Selling Items</h2></div>
+        {!data?<div className="list-skeleton"/>:data.top.length===0?<div className="empty-state compact"><span className="empty-icon"><Icon name="bag" size={22}/></span><strong>No sales in this period</strong><span className="muted">Best sellers appear once bills are saved.</span></div>:<ol className="top-list">{data.top.map(item=><li key={item.key}><Thumb photos={photos} photoId={item.photoId} name={item.name} size={40}/><span className="top-name"><strong>{item.name}</strong>{item.label&&<small className="muted">{item.label}</small>}</span><span className="top-qty">{item.stockUnit==='UNIT'?item.quantity.toLocaleString('en-IN'):stockQuantityText(item.quantity,item.stockUnit)}</span></li>)}</ol>}
+      </div>
+    </div>
+    <div className="quick-actions">{actions.filter(a=>a[4]).map(([to,label,icon,tone])=><Link key={label} to={to} className={`quick-action tone-${tone}`}><span className="qa-icon"><Icon name={icon} size={24}/></span><span>{label}</span></Link>)}</div>
+  </section>;
+}
+
+export function EmployeeOverview({name}:{name:string}){return <section className="page-section dashboard"><div className="dash-head"><div><h1>{greeting(new Date().getHours())}, {name.trim().split(/\s+/)[0]} <span aria-hidden="true">👋</span></h1><p className="muted">Open a task to continue.</p></div></div><div className="quick-actions"><NavLink to="/pos" className="quick-action tone-purple"><span className="qa-icon"><Icon name="cart" size={24}/></span><span>New Sale</span></NavLink><NavLink to="/pos?held=1" className="quick-action tone-blue"><span className="qa-icon"><Icon name="pause" size={24}/></span><span>Held bills</span></NavLink><NavLink to="/more" className="quick-action tone-orange"><span className="qa-icon"><Icon name="more" size={24}/></span><span>More</span></NavLink></div></section>;}
