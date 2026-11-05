@@ -84,11 +84,19 @@ function Rail(){
     <button type="button" className="rail-link" onClick={()=>auth.lock()}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>Lock</span></button>
   </nav>;
 }
+function UserMenu({user}:{user:{name:string;role:string}}){
+  const [open,setOpen]=useState(false);
+  useEffect(()=>{if(!open)return;const close=(event:MouseEvent)=>{if(!(event.target as HTMLElement).closest('.user-menu'))setOpen(false);};const key=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false);};document.addEventListener('mousedown',close);document.addEventListener('keydown',key);return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',key);};},[open]);
+  const admin=user.role==='SUPER_ADMIN';
+  return <div className="user-menu"><button type="button" className="avatar-button" aria-haspopup="true" aria-expanded={open} aria-label={`Account menu for ${user.name}`} onClick={()=>setOpen(value=>!value)}><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span></button>
+    {open&&<div className="user-popover" role="menu"><div className="user-popover-head"><strong>{user.name}</strong><span>{admin?'Super Admin':'Employee'}</span><small>{admin?'Full access to every area':'Access limited to the areas your Super Admin allowed'}</small></div>
+      <button type="button" role="menuitem" className="secondary" onClick={()=>{setOpen(false);void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'));}}>Sign out</button></div>}</div>;
+}
 function TopBar({user}:{user:{name:string;role:string}}){
   const {activeGroup}=useVisibleGroups();
   return <header className="topbar"><div className="topbar-row">
     {activeGroup&&activeGroup.items.length>1?<nav className="subnav" aria-label={`${activeGroup.label} pages`}>{activeGroup.items.map(([path,label])=><NavLink key={path} to={path}>{label}</NavLink>)}</nav>:<strong className="topbar-title">{activeGroup?.label==='Home'?'Overview':activeGroup?.label}</strong>}
-    <div className="topbar-user"><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
+    <UserMenu user={user}/></div>
   </header>;
 }
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}

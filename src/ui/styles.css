@@ -420,6 +420,17 @@ main>section:not(.bento-home)>:is(form,div,article,details,fieldset,ul,ol):not(.
 .view-tabs button:hover:not(:disabled){background:rgba(255,255,255,.6);transform:none;box-shadow:none}
 .view-tabs button[aria-pressed=true]:hover:not(:disabled){background:#fff}
 
+.user-menu{position:relative;margin-left:auto}
+.avatar-button{padding:0!important;border:0!important;background:transparent!important;border-radius:50%!important;line-height:0;cursor:pointer}
+.avatar-button .avatar{width:42px;height:42px;font-size:17px}
+.avatar-button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.user-popover{position:absolute;right:0;top:calc(100% + 8px);width:250px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:14px;display:grid;gap:12px;z-index:50}
+.user-popover-head{display:grid;gap:3px}
+.user-popover-head strong{font-size:16px}
+.user-popover-head span{font-weight:600;color:var(--green-d)}
+.user-popover-head small{color:var(--soft);line-height:1.35}
+.user-popover button{width:100%}
+
 }
 
 @media print{.workspace>header,.rail,.topbar{display:none!important}}
