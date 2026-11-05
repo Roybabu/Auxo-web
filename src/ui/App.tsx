@@ -62,14 +62,33 @@ const navGroups:{label:string;items:NavItem[]}[]=[
   {label:'Reports',items:[['/reports','Reports','VIEW_REPORTS'],['/gst','GST reports','GST_REPORT'],['/closing','Day-end closing','CLOSE_DAY'],['/activity','Activity log','VIEW_ACTIVITY_LOG']]},
   {label:'More',items:[['/purchases','Purchases','MANAGE_PURCHASES'],['/backups','Backups','BACKUP_AND_RESTORE'],['/settings','Settings','MANAGE_SETTINGS'],['/quick-unlock','Quick unlock',null],['/recovery','Recovery code','MANAGE_USERS']]}
 ];
-function TopBar({user}:{user:{name:string;role:string}}){
+const railIcons:Record<string,ReactNode>={
+  Home:<path d="M3 11l9-8 9 8M5 10v10h14V10"/>,
+  Billing:<><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h4"/></>,
+  Stock:<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"/>,
+  People:<><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6M16 4.5a3.5 3.5 0 010 7M18 14c2.4.6 3.5 2.6 3.5 6"/></>,
+  Reports:<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>,
+  More:<><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></>
+};
+function useVisibleGroups(){
   const {pathname}=useLocation();
   const groups=navGroups.map(group=>({label:group.label,items:group.items.filter(([,,permission])=>permission===null||auth.can(permission))})).filter(group=>group.items.length>0);
   const activeGroup=groups.find(group=>group.items.some(([path])=>path==='/'?pathname==='/':pathname===path||pathname.startsWith(path+'/')))??groups[0];
-  return <header className="topbar"><div className="topbar-row"><div className="brand"><svg width="42" height="42" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#167D55"/><path d="M20 31V19M20 19c0-5 3-8 8-8 0 5-3 8-8 8zM20 24c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg><strong>AUXO</strong></div>
-    <nav className="topnav" aria-label="Main navigation">{groups.map(group=><NavLink key={group.label} to={group.items[0]![0]} end={group.label==='Home'} className={group===activeGroup?'active':''}>{group.label}</NavLink>)}</nav>
-    <div className="topbar-user"><button type="button" className="secondary lock-button" onClick={()=>auth.lock()}>🔒 Lock</button><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
-    {activeGroup&&activeGroup.items.length>1&&<nav className="subnav" aria-label={`${activeGroup.label} pages`}>{activeGroup.items.map(([path,label])=><NavLink key={path} to={path}>{label}</NavLink>)}</nav>}
+  return {groups,activeGroup};
+}
+function Rail(){
+  const {groups,activeGroup}=useVisibleGroups();
+  return <nav className="rail" aria-label="Main navigation"><div className="brand"><svg width="44" height="44" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="13" fill="#167D55"/><path d="M20 31V19M20 19c0-5 3-8 8-8 0 5-3 8-8 8zM20 24c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+    {groups.map(group=><NavLink key={group.label} to={group.items[0]![0]} end={group.label==='Home'} className={group===activeGroup?'rail-link active':'rail-link'}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{railIcons[group.label]}</svg><span>{group.label}</span></NavLink>)}
+    <div className="rail-spacer"/>
+    <button type="button" className="rail-link" onClick={()=>auth.lock()}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span>Lock</span></button>
+  </nav>;
+}
+function TopBar({user}:{user:{name:string;role:string}}){
+  const {activeGroup}=useVisibleGroups();
+  return <header className="topbar"><div className="topbar-row">
+    {activeGroup&&activeGroup.items.length>1?<nav className="subnav" aria-label={`${activeGroup.label} pages`}>{activeGroup.items.map(([path,label])=><NavLink key={path} to={path}>{label}</NavLink>)}</nav>:<strong className="topbar-title">{activeGroup?.label==='Home'?'Overview':activeGroup?.label}</strong>}
+    <div className="topbar-user"><span className="user-chip">{user.name}<small>{user.role==='SUPER_ADMIN'?'Super Admin':'Employee'}</small></span><span className="avatar" aria-hidden="true">{user.name.slice(0,1).toUpperCase()}</span><button type="button" className="secondary" onClick={()=>void auth.signOut().catch(error=>window.alert(error instanceof Error?error.message:'Could not record sign out.'))}>Sign out</button></div></div>
   </header>;
 }
 function Guard({permission,children}:{permission:Permission;children:ReactNode}){return auth.can(permission)?<>{children}</>:<section><h1>Access denied</h1><p>Your account does not have permission to open this area.</p></section>}
@@ -90,7 +109,7 @@ export default function App(){
   if(needsCategorySetup===null)return <main className="auth-screen"><section>Opening product categories…</section></main>;
   if(needsCategorySetup)return <CategorySetupPage service={categories} onDone={()=>setNeedsCategorySetup(false)}/>;
   if(locked)return <LockScreen auth={auth} userName={user.name}/>;
-  return <HashRouter><div className="workspace"><TopBar user={user}/><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
+  return <HashRouter><div className="workspace"><Rail/><div className="content"><TopBar user={user}/><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard}/>:<EmployeeOverview name={user.name}/>}/>
     {modules.filter(([path])=>!['products','inventory','pos','restaurant','customers','employees','backups','suppliers','purchases','gst','closing','loyalty','stock-count','stock-alerts'].includes(path)).map(([path,label,permission])=><Route key={path} path={`/${path}`} element={<Guard permission={permission}><Pending title={label}/></Guard>}/>)}
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'}/></Guard>}/>
@@ -116,5 +135,5 @@ export default function App(){
     <Route path="/loyalty" element={<Guard permission="MANAGE_LOYALTY"><LoyaltySettingsPage service={loyalty}/></Guard>}/>
     <Route path="/activity" element={<Guard permission="VIEW_ACTIVITY_LOG"><ActivityLogPage service={activityLog}/></Guard>}/>
     <Route path="*" element={<section><h1>Page not found</h1><NavLink to="/">Return to overview</NavLink></section>}/>
-  </Routes></main></div></HashRouter>;
+  </Routes></main></div></div></HashRouter>;
 }
