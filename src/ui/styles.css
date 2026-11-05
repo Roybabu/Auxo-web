@@ -279,6 +279,33 @@ main>section:not(.bento-home)>:is(button,.action){justify-self:start}
 .tile .form-grid label{margin:0 0 8px}
 .tile .form-grid input{width:100%;max-width:none;min-width:0}
 
+
+/* ---- Fit audit fixes: fields never spill out of their card ---- */
+.form-grid,.customer-form,.account-payment-form,.closing-entry,.closing-summary,.permission-grid,.return-rows{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))!important}
+.form-grid>*,.customer-form>*,.account-payment-form>*,.closing-entry>*,.closing-summary>*,.line-discount-fields>*{min-width:0}
+.form-grid input,.form-grid select,.form-grid textarea,.customer-form input,.customer-form select,.customer-form textarea,.account-payment-form input,.account-payment-form select,.closing-entry input,.closing-entry select,.closing-entry textarea,.line-discount-fields input,.line-discount-fields select{width:100%;max-width:100%;min-width:0}
+.customer-form button,.account-payment-form button{margin:0;align-self:end}
+.customer-form textarea{min-width:0}
+.closing-entry{max-width:none}
+.pos-products,.pos-checkout,.pos-layout>*{min-width:0}
+.pos-products form{max-width:100%}
+.line-discount-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.line-discount-fields select,.line-discount-fields input{flex:none}
+.cart-line,.cart-line *{min-width:0}
+.bento-hero,.bento-home{max-width:100%}
+.bento-hero>*{min-width:0;max-width:100%}
+.bento-hero svg,.bento-hero img{max-width:100%;height:auto}
+@media(max-width:600px){.bento-hero{border-radius:26px}}
+.pos-checkout>*{flex-shrink:0}
+.customer-form>.button-row,.customer-form>button,.customer-form>p,.customer-form>h2,.customer-form>.table-wrap{grid-column:1/-1}
+.customer-form .button-row button,.customer-form>button{width:auto;max-width:100%}
+.bento-home{overflow-x:visible!important}
+
+
+.dashboard-panels{grid-template-columns:minmax(0,1fr)!important}.dashboard-panel,.sales-chart{min-width:0;max-width:100%}
+
+.sales-chart{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:6px}.dashboard-table-tile{overflow-x:auto;min-width:0}
+
 }
 
 @media print{.workspace>header{display:none!important}}
