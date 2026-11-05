@@ -412,6 +412,8 @@ main>section:not(.bento-home)>:is(form,div,article,details,fieldset,ul,ol):not(.
 .pos-checkout .complete-sale:disabled{background:#C9D0CD}
 .grand-total,.pos-checkout .grand-total{background:#F1F2F1!important;color:var(--ink)!important;border-radius:8px}.grand-total *{color:var(--ink)!important}
 
+.pos-layout.pos-empty{grid-template-columns:minmax(0,1fr)}
+
 }
 
 @media print{.workspace>header,.rail,.topbar{display:none!important}}
