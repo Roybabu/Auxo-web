@@ -616,7 +616,8 @@ tbody tr:hover{background:#FBFAFE}
 .range-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .range-dates label{display:grid;gap:4px;font-size:12.5px}
 .range-dates input{padding:8px;font-size:13.5px;width:100%;box-sizing:border-box}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:720px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stat-grid.is-loading .stat-value{color:transparent;background:linear-gradient(90deg,#EFEDF5,#F7F6FB,#EFEDF5);border-radius:8px}
 .stat-card{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:var(--radius);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);min-width:0}
 .stat-card.tone-green{background:linear-gradient(180deg,#F1FBF5 0%,#fff 100%)}.stat-card.tone-blue{background:linear-gradient(180deg,#F0F5FE 0%,#fff 100%)}.stat-card.tone-purple{background:linear-gradient(180deg,#F5F0FF 0%,#fff 100%)}.stat-card.tone-orange{background:linear-gradient(180deg,#FFF6EA 0%,#fff 100%)}
@@ -769,6 +770,14 @@ body.dialog-open{overflow:hidden}
 .table-wrap th{text-transform:none!important;letter-spacing:0!important;font-size:13px!important;font-weight:600;color:var(--soft-2);background:#FBFAFD;padding:12px 14px}
 .table-wrap td{padding:11px 14px;border-bottom:1px solid var(--line-2)}
 .table-wrap tr:last-child td{border-bottom:0}
+.status-toggle{display:inline-flex;align-items:center;gap:10px;margin:0}
+.status-toggle input{width:18px;height:18px;margin:0;accent-color:var(--ok)}
+.status-pill{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.status-pill.status-on{background:var(--ok-bg);color:var(--ok)}
+.status-pill.status-off{background:var(--line-2);color:var(--soft-2)}
+.profile-tag{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:var(--brand-50);color:var(--brand-d);font-size:12.5px;font-weight:600;white-space:nowrap}
+.category-name{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600}
+.category-delete{flex:none;padding:6px 12px;font-size:12.5px}
 
 /* --- people --- */
 .text-success{color:var(--ok)!important}

@@ -97,7 +97,7 @@ export default function App(){
     <Route path="/stock-alerts" element={<Guard permission="VIEW_STOCK_RECORDS"><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockAlertsPage catalog={catalog} purchasing={purchasing} canReorder={auth.can('MANAGE_PURCHASES')}/></StockTabs></Guard>}/>
     <Route path="/stock-count" element={<Guard permission="ADJUST_STOCK"><StockCountPage service={stockCount}/></Guard>}/>
     <Route path="/employees" element={<Guard permission="MANAGE_USERS"><Tabbed tabs={peopleTabs()} label="People"><EmployeesPage auth={auth}/></Tabbed></Guard>}/>
-    <Route path="/settings" element={<Guard permission="MANAGE_SETTINGS"><ShopPage service={shops} photos={productPhotos}/></Guard>}/>
+    <Route path="/settings" element={<Guard permission="MANAGE_SETTINGS"><ShopPage service={shops} photos={productPhotos} categories={categories}/></Guard>}/>
     <Route path="/categories" element={<Guard permission="MANAGE_SETTINGS"><CategoriesPage service={categories}/></Guard>}/>
     <Route path="/quick-unlock" element={<QuickUnlockPage auth={auth}/>}/>
     <Route path="/recovery" element={<Guard permission="MANAGE_USERS"><RecoveryRoute/></Guard>}/>
