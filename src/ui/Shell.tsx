@@ -20,6 +20,16 @@ const SECTIONS:Omit<Section,'to'>[]=[
 
 const TITLES:[string,string][]=[['/pos','New Sale'],['/stock','Stock / Inventory'],['/stock-alerts','Stock / Inventory'],['/products','Products'],['/inventory','Stock adjustments'],['/stock-count','Stock count'],['/categories','Product categories'],['/customers','People'],['/suppliers','People'],['/employees','People'],['/loyalty','Customer loyalty'],['/reports','Reports'],['/gst','Reports'],['/closing','Reports'],['/activity','Reports'],['/more','More'],['/settings','Settings'],['/backups','Backups'],['/quick-unlock','Quick unlock'],['/recovery','Recovery code'],['/purchases','Purchases']];
 
+/** The Stock section's own pages, shown as an expandable sub-list in the sidebar so it's clear which one you're on. */
+const STOCK_ITEMS:{to:string;label:string;permission:Permission}[]=[
+  {to:'/stock',label:'Stock overview',permission:'VIEW_STOCK_RECORDS'},
+  {to:'/stock-alerts',label:'Stock alerts',permission:'VIEW_STOCK_RECORDS'},
+  {to:'/products',label:'Products',permission:'MANAGE_PRODUCTS'},
+  {to:'/inventory',label:'Stock adjustments',permission:'VIEW_STOCK_RECORDS'},
+  {to:'/stock-count',label:'Stock count',permission:'ADJUST_STOCK'},
+  {to:'/categories',label:'Product categories',permission:'MANAGE_SETTINGS'}
+];
+
 const matches=(pathname:string,base:string)=>base==='/'?pathname==='/':pathname===base||pathname.startsWith(base+'/');
 export function pageTitle(pathname:string){if(pathname==='/')return 'Dashboard';return TITLES.find(([base])=>matches(pathname,base))?.[1]??'AUXO';}
 
@@ -43,9 +53,24 @@ export function Sidebar({auth}:{auth:AuthService}){
   const {pathname}=useLocation(),online=useOnline();
   const links=sectionLinks(auth);
   const active=SECTIONS.find(section=>section.match.some(base=>matches(pathname,base)))?.key;
+  const stockItems=useMemo(()=>STOCK_ITEMS.filter(item=>auth.can(item.permission)),[auth]);
+  const stockGroupActive=stockItems.some(item=>matches(pathname,item.to));
+  const [stockOpen,setStockOpen]=useState(stockGroupActive);
+  useEffect(()=>{if(stockGroupActive)setStockOpen(true);},[stockGroupActive]);
   return <nav className="sidebar" aria-label="Main navigation">
     <NavLink to="/" className="sidebar-brand" aria-label="AUXO POS home"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><defs><linearGradient id="auxo-mark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#B69CFF"/><stop offset="1" stopColor="#7B4DFF"/></linearGradient></defs><path d="M17 1 1 29h8l8-14.5L25 29h8L17 1z" fill="url(#auxo-mark)"/><path d="M13 23h8" stroke="#211A38" strokeWidth="3" strokeLinecap="round"/></svg><span><strong>AUXO</strong> POS</span></NavLink>
-    <ul className="sidebar-links">{links.map(link=><li key={link.key}><NavLink to={link.to} end className={()=>link.key===active?'sidebar-link active':'sidebar-link'} aria-current={link.key===active?'page':undefined}><Icon name={link.icon} size={20}/><span>{link.label}</span></NavLink></li>)}</ul>
+    <ul className="sidebar-links">{links.map(link=>{
+      if(link.key==='stock'&&stockItems.length>1){
+        return <li key={link.key} className="sidebar-group">
+          <div className="sidebar-link-row">
+            <NavLink to={link.to} end className={()=>link.key===active?'sidebar-link active':(stockGroupActive?'sidebar-link group-active':'sidebar-link')} aria-current={link.key===active?'page':undefined}><Icon name={link.icon} size={20}/><span>{link.label}</span></NavLink>
+            <button type="button" className="sidebar-group-toggle" aria-expanded={stockOpen} aria-label={stockOpen?'Collapse the Stock section':'Expand the Stock section'} onClick={()=>setStockOpen(v=>!v)}><Icon name="chevronDown" size={14}/></button>
+          </div>
+          {stockOpen&&<ul className="sidebar-subnav">{stockItems.map(item=><li key={item.to}><NavLink to={item.to} end className={()=>matches(pathname,item.to)?'sidebar-sublink active':'sidebar-sublink'} aria-current={matches(pathname,item.to)?'page':undefined}>{item.label}</NavLink></li>)}</ul>}
+        </li>;
+      }
+      return <li key={link.key}><NavLink to={link.to} end className={()=>link.key===active?'sidebar-link active':'sidebar-link'} aria-current={link.key===active?'page':undefined}><Icon name={link.icon} size={20}/><span>{link.label}</span></NavLink></li>;
+    })}</ul>
     <div className="sidebar-spacer"/>
     <div className={online?'offline-badge':'offline-badge is-offline'} role="status" title={online?'Everything is saved on this device, so billing keeps working without internet.':'No internet right now. AUXO keeps working and saves everything on this device.'}><span className="dot" aria-hidden="true"/>{online?'Offline ready':'Offline mode'}</div>
   </nav>;
