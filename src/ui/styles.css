@@ -260,7 +260,7 @@ details.bill-extra .customer-form{grid-template-columns:1fr;margin-top:6px}
 .lock-button{white-space:nowrap}
 
 /* ---- Layout fixes: header fit, page alignment, purchase rows ---- */
-main{box-sizing:border-box;width:min(1280px,calc(100% - 2*clamp(16px,2.6vw,40px)));max-width:none;margin:0 auto;padding:28px 0 48px}
+main{box-sizing:border-box;width:calc(100% - 2*clamp(16px,2.6vw,40px));margin:0 auto;padding:28px 0 48px}
 .auth-screen{width:auto}
 .topbar-row{flex-wrap:nowrap}
 .topnav{flex:0 1 auto;min-width:0}
@@ -520,13 +520,13 @@ p.error[role=alert]{background:var(--bad-bg);border:1px solid #F6C9CB;border-rad
 .tab-count{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--bad);color:#fff;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .tabbed-page>section>h1:first-child:not(.sr-only){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .tabbed-page>section>h1:first-child+p{color:var(--soft);margin-top:0}
-.page-section{display:grid;gap:16px;align-content:start}
+.page-section{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .toolbar .search-field{flex:1 1 320px;max-width:520px}
 .toolbar-actions{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
 .search-field{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;background:#fff;border:1px solid var(--line);border-radius:12px;color:var(--soft);transition:border-color .15s ease,box-shadow .15s ease;margin:0;font-weight:400}
 .search-field:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(96,49,199,.14)}
-.search-field input{flex:1;min-width:0;border:0!important;box-shadow:none!important;padding:0;height:100%;background:transparent;font-size:14.5px;color:var(--ink)}
+.search-field input{flex:1;min-width:0;max-width:none;border:0!important;box-shadow:none!important;padding:0;height:100%;background:transparent;font-size:14.5px;color:var(--ink)}
 .search-field input::-webkit-search-cancel-button{cursor:pointer}
 .tool-button{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:600;font-size:14px;text-decoration:none;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
 .tool-button:hover:not(:disabled){background:var(--brand-50);border-color:var(--brand-100);color:var(--brand-d)}
