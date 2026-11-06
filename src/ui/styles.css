@@ -442,8 +442,8 @@ h1{font-size:24px;font-weight:700;letter-spacing:-.015em}h2{font-size:18px;font-
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 button,.action,a{-webkit-tap-highlight-color:transparent}
 button,.action{border-radius:10px;font-weight:600;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease,transform .15s ease}
-button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit),.action:not(.secondary){background:var(--brand);color:#fff;border:1px solid var(--brand)}
-button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit):hover:not(:disabled),.action:not(.secondary):hover{background:var(--brand-d);border-color:var(--brand-d)}
+button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit):not(.subcat-chip-name):not(.subcat-chip-remove),.action:not(.secondary){background:var(--brand);color:#fff;border:1px solid var(--brand)}
+button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit):not(.subcat-chip-name):not(.subcat-chip-remove):hover:not(:disabled),.action:not(.secondary):hover{background:var(--brand-d);border-color:var(--brand-d)}
 .secondary,.action.secondary{background:#fff;border:1px solid var(--line);color:var(--ink)}
 .secondary:hover:not(:disabled),.action.secondary:hover{background:var(--brand-50);border-color:var(--brand-100)}
 button:disabled{opacity:.5;cursor:not-allowed}
@@ -778,6 +778,17 @@ body.dialog-open{overflow:hidden}
 .profile-tag{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:var(--brand-50);color:var(--brand-d);font-size:12.5px;font-weight:600;white-space:nowrap}
 .category-name{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600}
 .category-delete{flex:none;padding:6px 12px;font-size:12.5px}
+.th-hint{display:block;font-weight:400;font-size:11px;color:var(--soft);margin-top:3px;text-transform:none;letter-spacing:0;white-space:normal}
+.subcat-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:320px}
+.subcat-chip{display:inline-flex;align-items:center;height:28px;padding:0 4px 0 10px;border-radius:999px;background:var(--line-2);border:1px solid var(--line);gap:2px}
+.subcat-chip-name{background:none;border:0;color:var(--ink);font-size:12.5px;font-weight:500;padding:0 2px;cursor:pointer}
+.subcat-chip-remove{background:none;border:0;color:var(--soft-2);width:20px;height:20px;padding:0;border-radius:50%;font-size:14px;line-height:1;cursor:pointer}
+.subcat-chip-remove:hover{background:var(--bad-bg);color:var(--bad)}
+.subcat-edit{display:inline-flex;margin:0}
+.subcat-edit input{height:28px;padding:0 10px;font-size:12.5px;border-radius:999px;width:120px;min-width:0}
+.subcat-add{display:inline-flex;align-items:center;gap:6px;margin:0}
+.subcat-add input{height:28px;padding:0 10px;font-size:12.5px;border-radius:999px;width:128px;min-width:0}
+.subcat-add-btn{width:28px;height:28px;padding:0;border-radius:50%;flex:none;font-size:16px;line-height:1}
 
 /* --- people --- */
 .text-success{color:var(--ok)!important}
