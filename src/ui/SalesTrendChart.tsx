@@ -36,7 +36,7 @@ export function SalesTrendChart({series}:{series:SeriesPoint[]}){
   const shown=active??chart.peak,point=shown>=0?chart.points[shown]:undefined,item=shown>=0?series[shown]:undefined;
   return <div className="trend-chart" ref={box}>
     <svg width="100%" height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="img" tabIndex={0} aria-label={`Sales trend: ${series.length} periods, total ${rupees(BigInt(total))}. Use the left and right arrow keys to read each period.`} onPointerMove={pick} onPointerLeave={()=>setActive(null)} onKeyDown={keys} onBlur={()=>setActive(null)}>
-      <defs><linearGradient id={`g${gradient}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7B4DFF" stopOpacity=".32"/><stop offset="100%" stopColor="#7B4DFF" stopOpacity="0"/></linearGradient></defs>
+      <defs><linearGradient id={`g${gradient}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#19B5C2" stopOpacity=".32"/><stop offset="100%" stopColor="#19B5C2" stopOpacity="0"/></linearGradient></defs>
       {chart.ticks.map(tick=><g key={tick}><line x1={PAD.left} x2={width-PAD.right} y1={chart.y(tick)} y2={chart.y(tick)} className={tick===0?'grid zero':'grid'}/><text x={PAD.left-10} y={chart.y(tick)} className="axis y-axis" dominantBaseline="middle" textAnchor="end">{compactRupees(tick)}</text></g>)}
       {series.map((p,i)=>i%chart.every===0||i===series.length-1&&series.length<=8?<text key={p.start} x={chart.points[i]?.[0]} y={HEIGHT-8} className="axis" textAnchor={i===0&&series.length>1?'start':i===series.length-1&&series.length>1?'end':'middle'}>{p.label}</text>:null)}
       {chart.area&&<path d={chart.area} fill={`url(#g${gradient})`}/>}
