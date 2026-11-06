@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
+import {useEffect,useLayoutEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 import {createPortal} from 'react-dom';
 import type {ProductPhotoService} from '../application/productPhotoService';
@@ -22,14 +22,61 @@ export function Thumb({photos,photoId,name,size=40}:{photos?:ProductPhotoService
 }
 
 export type MenuAction={label:string;icon?:IconName;to?:string;onSelect?:()=>void;danger?:boolean;hidden?:boolean};
-/** Small "⋯" menu for a table row. */
+/**
+ * Small "⋯" menu for a table row. The popover is portaled to document.body and
+ * positioned against the trigger button's live viewport coordinates, so a row near
+ * the bottom or edge of a scrolling table (overflow-x:auto on .table-wrap implicitly
+ * clips overflow-y too) never has its menu cut off or hidden behind other content.
+ */
 export function RowMenu({label,actions}:{label:string;actions:MenuAction[]}){
-  const [open,setOpen]=useState(false),ref=useRef<HTMLDivElement|null>(null);
-  useEffect(()=>{if(!open)return;const close=(event:MouseEvent)=>{if(ref.current&&!ref.current.contains(event.target as Node))setOpen(false);};const key=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false);};document.addEventListener('mousedown',close);document.addEventListener('keydown',key);return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',key);};},[open]);
+  const [open,setOpen]=useState(false);
+  const buttonRef=useRef<HTMLButtonElement|null>(null);
+  const popoverRef=useRef<HTMLDivElement|null>(null);
+  const [style,setStyle]=useState<{top:number;left:number;openUpward:boolean}|null>(null);
+
+  // Position (and reposition) the portaled popover against the trigger's current rect,
+  // flipping above the button and clamping horizontally when there isn't room.
+  useLayoutEffect(()=>{
+    if(!open)return;
+    function place(){
+      const button=buttonRef.current;
+      if(!button)return;
+      const rect=button.getBoundingClientRect();
+      const popoverHeight=popoverRef.current?.offsetHeight??0;
+      const popoverWidth=popoverRef.current?.offsetWidth??200;
+      const margin=8;
+      const openUpward=rect.bottom+popoverHeight+margin>window.innerHeight&&rect.top-popoverHeight-margin>0;
+      const top=openUpward?rect.top-popoverHeight-margin:rect.bottom+margin;
+      let left=rect.right-popoverWidth;
+      left=Math.max(margin,Math.min(left,window.innerWidth-popoverWidth-margin));
+      setStyle({top,left,openUpward});
+    }
+    place();
+    window.addEventListener('resize',place);
+    return()=>window.removeEventListener('resize',place);
+  },[open]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const close=(event:MouseEvent)=>{
+      const target=event.target as Node;
+      if(buttonRef.current?.contains(target))return;
+      if(popoverRef.current?.contains(target))return;
+      setOpen(false);
+    };
+    const key=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false);};
+    // Capture so a scroll inside a nested scroll container (e.g. .table-wrap) is seen too.
+    const onScroll=()=>setOpen(false);
+    document.addEventListener('mousedown',close);
+    document.addEventListener('keydown',key);
+    window.addEventListener('scroll',onScroll,true);
+    return()=>{document.removeEventListener('mousedown',close);document.removeEventListener('keydown',key);window.removeEventListener('scroll',onScroll,true);};
+  },[open]);
+
   const shown=actions.filter(action=>!action.hidden);
   if(!shown.length)return null;
-  return <div className="row-menu" ref={ref}><button type="button" className="icon-button small" aria-haspopup="true" aria-expanded={open} aria-label={label} onClick={()=>setOpen(v=>!v)}><Icon name="dots" size={18}/></button>
-    {open&&<div className="popover row-popover" role="menu">{shown.map(action=>action.to?<Link key={action.label} to={action.to} role="menuitem" className={action.danger?'menu-row danger':'menu-row'} onClick={()=>setOpen(false)}>{action.icon&&<Icon name={action.icon} size={17}/>}{action.label}</Link>:<button key={action.label} type="button" role="menuitem" className={action.danger?'menu-row danger':'menu-row'} onClick={()=>{setOpen(false);action.onSelect?.();}}>{action.icon&&<Icon name={action.icon} size={17}/>}{action.label}</button>)}</div>}</div>;
+  return <div className="row-menu"><button type="button" ref={buttonRef} className="icon-button small" aria-haspopup="true" aria-expanded={open} aria-label={label} onClick={()=>setOpen(v=>!v)}><Icon name="dots" size={18}/></button>
+    {open&&createPortal(<div className="popover row-popover" role="menu" ref={popoverRef} style={{position:'fixed',top:style?.top??-9999,left:style?.left??-9999,right:'auto',visibility:style?'visible':'hidden'}}>{shown.map(action=>action.to?<Link key={action.label} to={action.to} role="menuitem" className={action.danger?'menu-row danger':'menu-row'} onClick={()=>setOpen(false)}>{action.icon&&<Icon name={action.icon} size={17}/>}{action.label}</Link>:<button key={action.label} type="button" role="menuitem" className={action.danger?'menu-row danger':'menu-row'} onClick={()=>{setOpen(false);action.onSelect?.();}}>{action.icon&&<Icon name={action.icon} size={17}/>}{action.label}</button>)}</div>,document.body)}</div>;
 }
 
 export type SortState<K extends string>={key:K;dir:'asc'|'desc'};
