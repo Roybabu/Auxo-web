@@ -440,6 +440,7 @@ main>section,main>div{animation:pageIn .22s ease-out both}
 a{color:var(--brand)}
 h1{font-size:24px;font-weight:700;letter-spacing:-.015em}h2{font-size:18px;font-weight:650;letter-spacing:-.01em}h3{font-size:15px;font-weight:650}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+button,.action,a{-webkit-tap-highlight-color:transparent}
 button,.action{border-radius:10px;font-weight:600;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease,transform .15s ease}
 button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit),.action:not(.secondary){background:var(--brand);color:#fff;border:1px solid var(--brand)}
 button:not(.secondary):not(.text-button):not(.link-button):not(.icon-button):not(.menu-row):not(.sidebar-link):not(.page-button):not(.sort-button):not(.avatar-button):not(.store-select):not(.chip):not(.qty-button):not(.product-tile):not(.notify-item):not(.tool-button):not(.ghost):not(.customer-link):not(.scan-button):not(.chart-hit):hover:not(:disabled),.action:not(.secondary):hover{background:var(--brand-d);border-color:var(--brand-d)}
@@ -483,7 +484,7 @@ p.error[role=alert]{background:var(--bad-bg);border:1px solid #F6C9CB;border-rad
 .avatar{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
 .avatar.large{width:44px;height:44px;font-size:17px}
 .popover{position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);padding:12px;z-index:60;min-width:220px;animation:popIn .14s ease-out}
-@keyframes popIn{from{opacity:0;transform:translateY(-4px)}}
+@keyframes popIn{from{transform:translateY(-6px) scale(.97)}to{transform:translateY(0) scale(1)}}
 .popover-label{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.05em}
 .popover-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:2px 4px 10px;border-bottom:1px solid var(--line-2);margin-bottom:6px}
 .store-popover{width:280px}.store-popover p{margin:8px 2px}
