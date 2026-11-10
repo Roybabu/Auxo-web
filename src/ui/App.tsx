@@ -59,6 +59,11 @@ const notifications=new NotificationService(database,auth);
 const can=(permission:Permission)=>auth.can(permission);
 const listCategories=()=>catalog.listCategories();
 function Tabbed({tabs,label,children}:{tabs:TabLink[];label:string;children:ReactNode}){return <div className="tabbed-page"><PageTabs tabs={tabs} label={label}/>{children}</div>;}
+function StockArea({children}:{children:ReactNode}){
+  const {pathname}=useLocation();
+  const links=([['/stock','Overview','VIEW_STOCK_RECORDS'],['/products','Products','MANAGE_PRODUCTS'],['/inventory','Stock adjustments','VIEW_STOCK_RECORDS'],['/stock-count','Stock count','ADJUST_STOCK'],['/categories','Product categories','MANAGE_SETTINGS']] as [string,string,Permission][]).filter(([,,permission])=>auth.can(permission));
+  return <div className="tabbed-page">{links.length>1&&<nav className="page-tabs" aria-label="Stock sections">{links.map(([to,label])=>{const active=pathname===to||pathname.startsWith(to+'/')||(to==='/stock'&&pathname==='/stock-alerts');return <NavLink key={to} to={to} className={active?'page-tab active':'page-tab'} aria-current={active?'page':undefined}>{label}</NavLink>;})}</nav>}{children}</div>;
+}
 function peopleTabs():TabLink[]{return ([['/customers','Customers','MANAGE_CUSTOMERS'],['/suppliers','Suppliers','MANAGE_SUPPLIERS'],['/employees','Staff','MANAGE_USERS']] as [string,string,Permission][]).filter(([,,p])=>auth.can(p)).map(([to,label])=>({to,label}));}
 function reportTabs():TabLink[]{return ([['/reports','Reports','VIEW_REPORTS'],['/gst','GST','GST_REPORT'],['/closing','Day-end closing','CLOSE_DAY'],['/activity','Activity log','VIEW_ACTIVITY_LOG']] as [string,string,Permission][]).filter(([,,p])=>auth.can(p)).map(([to,label])=>({to,label}));}
 function PeopleHome(){const first=peopleTabs()[0]?.to??(auth.can('MANAGE_LOYALTY')?'/loyalty':'/');return <Navigate to={first} replace/>;}
@@ -82,23 +87,23 @@ export default function App(){
   if(locked)return <LockScreen auth={auth} userName={user.name}/>;
   return <HashRouter><div className="workspace"><Sidebar auth={auth}/><div className="content"><Header auth={auth} shops={shops} notifications={notifications} user={user}/><main>{folderAccessNeeded&&<p role="status" className="backup-due-banner"><strong>Scheduled backups need access to your backup folder again.</strong> <a href="#/backups">Open Backups</a> and click Allow folder access.</p>}<Routes>
     <Route path="/" element={auth.can('VIEW_DASHBOARD')?<DashboardPage service={dashboard} photos={productPhotos} userName={user.name} can={can}/>:<EmployeeOverview name={user.name}/>}/>
-    <Route path="/stock" element={<Guard permission="VIEW_STOCK_RECORDS"><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockItemsPage catalog={catalog} photos={productPhotos} can={can}/></StockTabs></Guard>}/>
-    <Route path="/stock/alerts" element={<Guard permission="VIEW_STOCK_RECORDS"><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockAlertsListPage catalog={catalog} photos={productPhotos} can={can}/></StockTabs></Guard>}/>
-    <Route path="/stock/expiring" element={<Guard permission="VIEW_STOCK_RECORDS"><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><ExpiringPage catalog={catalog} shops={shops} photos={productPhotos} can={can}/></StockTabs></Guard>}/>
+    <Route path="/stock" element={<Guard permission="VIEW_STOCK_RECORDS"><StockArea><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockItemsPage catalog={catalog} photos={productPhotos} can={can}/></StockTabs></StockArea></Guard>}/>
+    <Route path="/stock/alerts" element={<Guard permission="VIEW_STOCK_RECORDS"><StockArea><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockAlertsListPage catalog={catalog} photos={productPhotos} can={can}/></StockTabs></StockArea></Guard>}/>
+    <Route path="/stock/expiring" element={<Guard permission="VIEW_STOCK_RECORDS"><StockArea><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><ExpiringPage catalog={catalog} shops={shops} photos={productPhotos} can={can}/></StockTabs></StockArea></Guard>}/>
     <Route path="/people" element={<PeopleHome/>}/>
     <Route path="/more" element={<MorePage can={can}/>}/>
     <Route path="/pos" element={<Guard permission="SELL"><SalesPage sales={sales} shops={shops} photos={productPhotos} quotations={quotations} canReturn={auth.can('PROCESS_RETURN')} employee={user.role==='EMPLOYEE'} listCategories={listCategories}/></Guard>}/>
     <Route path="/restaurant" element={<Navigate to="/pos" replace/>}/>
     <Route path="/customers" element={<Guard permission="MANAGE_CUSTOMERS"><Tabbed tabs={peopleTabs()} label="People"><CustomerAccountsPage sales={sales} shops={shops} photos={productPhotos} canReceive={auth.can('RECEIVE_ACCOUNT_PAYMENT')}/></Tabbed></Guard>}/>
-    <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><ProductsPage service={catalog} photos={productPhotos}/></Guard>}/>
-    <Route path="/products/import" element={<Guard permission="MANAGE_PRODUCTS"><ProductImportPage service={catalog}/></Guard>}/>
-    <Route path="/products/:productId/labels" element={<Guard permission="MANAGE_PRODUCTS"><LabelPrintPage service={catalog}/></Guard>}/>
-    <Route path="/inventory" element={<Guard permission="VIEW_STOCK_RECORDS"><InventoryPage service={catalog} shops={shops}/></Guard>}/>
-    <Route path="/stock-alerts" element={<Guard permission="VIEW_STOCK_RECORDS"><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockAlertsPage catalog={catalog} purchasing={purchasing} canReorder={auth.can('MANAGE_PURCHASES')}/></StockTabs></Guard>}/>
-    <Route path="/stock-count" element={<Guard permission="ADJUST_STOCK"><StockCountPage service={stockCount}/></Guard>}/>
+    <Route path="/products" element={<Guard permission="MANAGE_PRODUCTS"><StockArea><ProductsPage service={catalog} photos={productPhotos}/></StockArea></Guard>}/>
+    <Route path="/products/import" element={<Guard permission="MANAGE_PRODUCTS"><StockArea><ProductImportPage service={catalog}/></StockArea></Guard>}/>
+    <Route path="/products/:productId/labels" element={<Guard permission="MANAGE_PRODUCTS"><StockArea><LabelPrintPage service={catalog}/></StockArea></Guard>}/>
+    <Route path="/inventory" element={<Guard permission="VIEW_STOCK_RECORDS"><StockArea><InventoryPage service={catalog} shops={shops}/></StockArea></Guard>}/>
+    <Route path="/stock-alerts" element={<Guard permission="VIEW_STOCK_RECORDS"><StockArea><StockTabs catalog={catalog} shops={shops} canReorder={auth.can('MANAGE_PURCHASES')}><StockAlertsPage catalog={catalog} purchasing={purchasing} canReorder={auth.can('MANAGE_PURCHASES')}/></StockTabs></StockArea></Guard>}/>
+    <Route path="/stock-count" element={<Guard permission="ADJUST_STOCK"><StockArea><StockCountPage service={stockCount}/></StockArea></Guard>}/>
     <Route path="/employees" element={<Guard permission="MANAGE_USERS"><Tabbed tabs={peopleTabs()} label="People"><EmployeesPage auth={auth}/></Tabbed></Guard>}/>
     <Route path="/settings" element={<Guard permission="MANAGE_SETTINGS"><ShopPage service={shops} photos={productPhotos} categories={categories}/></Guard>}/>
-    <Route path="/categories" element={<Guard permission="MANAGE_SETTINGS"><CategoriesPage service={categories}/></Guard>}/>
+    <Route path="/categories" element={<Guard permission="MANAGE_SETTINGS"><StockArea><CategoriesPage service={categories}/></StockArea></Guard>}/>
     <Route path="/quick-unlock" element={<QuickUnlockPage auth={auth}/>}/>
     <Route path="/recovery" element={<Guard permission="MANAGE_USERS"><RecoveryRoute/></Guard>}/>
     <Route path="/suppliers" element={<Guard permission="MANAGE_SUPPLIERS"><Tabbed tabs={peopleTabs()} label="People"><SuppliersPage service={purchasing}/></Tabbed></Guard>}/>
